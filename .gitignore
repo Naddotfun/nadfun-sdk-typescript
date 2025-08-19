@@ -8,6 +8,3 @@ coverage/
 .vscode/
 .idea/
 *.js
-
-# Release notes (managed externally)
-RELEASE_NOTES*.md
