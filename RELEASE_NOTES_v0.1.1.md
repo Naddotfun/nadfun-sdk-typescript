@@ -1,4 +1,4 @@
-# Release Notes v0.1.2
+# Release Notes v0.1.1
 
 ## 🎯 Overview
 
@@ -170,6 +170,6 @@ This release represents a significant architectural improvement while maintainin
 
 ---
 
-**Full Changelog**: v0.1.1...v0.1.2  
+**Full Changelog**: v0.1.0...v0.1.1  
 **Release Date**: 2025-01-20  
-**Compatibility**: Fully backward compatible with v0.1.1
+**Compatibility**: Fully backward compatible with v0.1.0
