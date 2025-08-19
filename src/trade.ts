@@ -1,13 +1,20 @@
 import type { Address, GetContractReturnType, PrivateKeyAccount } from 'viem'
 import type { PublicClient, WalletClient } from 'viem'
-import type { BuyParams, SellParams, QuoteResult, CurveData, SellPermitParams, GasConfig } from '@/types'
+import type {
+  BuyParams,
+  SellParams,
+  QuoteResult,
+  CurveData,
+  SellPermitParams,
+  GasConfig,
+} from '@/types'
 
 import { createPublicClient, createWalletClient, http, getContract, encodeFunctionData } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
 import { CONTRACTS, CURRENT_CHAIN, DEFAULT_DEADLINE_SECONDS } from '@/constants'
 import { BONDING_ROUTER_GAS_CONFIG, DEX_ROUTER_GAS_CONFIG } from '@/utils/gasConfig'
 import { curveAbi, lensAbi, routerAbi } from '@/abis'
-import { getPermitSignature } from './utils/permit'
+// Permit functionality now handled by Token class
 import { Token } from './token'
 
 // GasConfig moved to src/types/trade.ts
@@ -318,21 +325,29 @@ export class Trade {
   ): Promise<string> {
     const deadline = params.deadline ?? Math.floor(Date.now() / 1000) + DEFAULT_DEADLINE_SECONDS
 
-    // Use provided nonce or read from contract
-    const nonce = params.permitNonce ?? (await this.getNonce(params.token))
+    // Generate permit signature using Token class
+    let signature: { v: number; r: string; s: string; nonce: bigint }
 
-    const signature = await getPermitSignature({
-      owner: this.account.address,
-      spender: router,
-      value: params.amountIn,
-      nonce: nonce,
-      deadline: BigInt(deadline),
-      chainId: CURRENT_CHAIN.id,
-      token: params.token,
-      account: this.account.address,
-      walletClient: this.walletClient,
-      publicClient: this.publicClient,
-    })
+    if (params.permitNonce !== undefined) {
+      // Use provided nonce - delegate to Token's internal method
+      signature = await (this.tokenManager as any)['_generatePermitSignature'](
+        this.account.address,
+        router,
+        params.amountIn,
+        params.permitNonce,
+        BigInt(deadline),
+        params.token
+      )
+      signature.nonce = params.permitNonce
+    } else {
+      // Use Token's convenience method that reads nonce automatically
+      signature = await this.tokenManager.generatePermitSignature(
+        params.token,
+        router,
+        params.amountIn,
+        BigInt(deadline)
+      )
+    }
 
     const sellPermitParams = {
       amountIn: params.amountIn,

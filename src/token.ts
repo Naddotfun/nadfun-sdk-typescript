@@ -12,7 +12,7 @@ import type { Address, PrivateKeyAccount } from 'viem'
 import type { TokenMetadata } from '@/types'
 import type { PublicClient, WalletClient } from 'viem'
 import { CURRENT_CHAIN } from '@/constants'
-import { getPermitSignature } from '@/utils/permit'
+import { Hex } from 'viem'
 
 export class Token {
   public publicClient: PublicClient
@@ -281,6 +281,96 @@ export class Token {
   }
 
   /**
+   * Generate EIP-2612 permit signature (internal method)
+   * Used by generatePermitSignature and other permit-related functions
+   */
+  private async _generatePermitSignature(
+    owner: Address,
+    spender: Address,
+    value: bigint,
+    nonce: bigint,
+    deadline: bigint,
+    token: Address
+  ): Promise<{ v: number; r: string; s: string }> {
+    try {
+      // Get token name from contract for EIP-712 domain
+      let tokenName = ''
+      try {
+        tokenName = (await this.publicClient.readContract({
+          address: token,
+          abi: [
+            {
+              type: 'function',
+              name: 'name',
+              inputs: [],
+              outputs: [{ name: '', type: 'string' }],
+              stateMutability: 'view',
+            },
+          ],
+          functionName: 'name',
+        })) as string
+      } catch {
+        // Fallback to empty string if name() is not available
+        tokenName = ''
+      }
+
+      const domain = {
+        name: tokenName,
+        version: '1',
+        chainId: CURRENT_CHAIN.id,
+        verifyingContract: token,
+      }
+
+      const types = {
+        Permit: [
+          { name: 'owner', type: 'address' },
+          { name: 'spender', type: 'address' },
+          { name: 'value', type: 'uint256' },
+          { name: 'nonce', type: 'uint256' },
+          { name: 'deadline', type: 'uint256' },
+        ],
+      }
+
+      const message = {
+        owner,
+        spender,
+        value,
+        nonce,
+        deadline,
+      }
+
+      const signature = await this.walletClient.signTypedData({
+        domain,
+        types,
+        primaryType: 'Permit',
+        message,
+      } as any)
+
+      // Parse signature
+      const sig = signature.slice(2)
+      const r = `0x${sig.substring(0, 64)}` as Hex
+      const s = `0x${sig.substring(64, 128)}` as Hex
+      const v = parseInt(sig.substring(128, 130), 16)
+
+      return { v, r, s }
+    } catch (error: any) {
+      // Wallet specific error messages
+      if (error?.message?.includes('signTypedData')) {
+        throw new Error(
+          'Wallet does not support permit signing. Please use regular approval method.'
+        )
+      }
+
+      if (error?.message?.includes('User rejected')) {
+        throw new Error('User cancelled the signature.')
+      }
+
+      // Re-throw original error
+      throw error
+    }
+  }
+
+  /**
    * Generate complete permit signature
    * This combines nonce reading + signature generation for convenience
    */
@@ -293,22 +383,18 @@ export class Token {
   ): Promise<{ v: number; r: string; s: string; nonce: bigint }> {
     const ownerAddr = owner || this.account.address
 
-    // Parallel fetch for optimization
+    // Get current nonce
     const nonce = await this.getNonce(token, ownerAddr)
 
-    // Use existing permit utility
-    const signature = await getPermitSignature({
-      owner: ownerAddr,
+    // Generate permit signature using internal method
+    const signature = await this._generatePermitSignature(
+      ownerAddr,
       spender,
       value,
       nonce,
       deadline,
-      chainId: CURRENT_CHAIN.id,
-      token,
-      account: this.account.address,
-      walletClient: this.walletClient,
-      publicClient: this.publicClient,
-    })
+      token
+    )
 
     return {
       ...signature,
@@ -405,7 +491,7 @@ export class Token {
    */
   async isContract(address: Address): Promise<boolean> {
     try {
-      const code = await this.publicClient.getBytecode({ address })
+      const code = await this.publicClient.getCode({ address })
       return code !== undefined && code !== '0x'
     } catch {
       return false

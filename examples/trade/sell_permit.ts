@@ -11,7 +11,7 @@
 
 import { config } from 'dotenv'
 import { Trade } from '../../src/trade'
-import { Token } from '../../src/Token'
+import { Token } from '../../src/token'
 import { formatUnits, parseUnits } from 'viem'
 import { monadTestnet } from 'viem/chains'
 import { parseArgs } from 'util'
