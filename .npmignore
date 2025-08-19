@@ -1,0 +1,51 @@
+# Development and build files
+node_modules/
+*.log
+*.tgz
+.DS_Store
+Thumbs.db
+
+# Development configs
+.eslintrc.js
+.prettierrc
+tsconfig.json
+tsup.config.ts
+jest.config.js
+
+# Environment files
+.env
+.env.local
+.env.*.local
+env.example
+
+# Development tools
+coverage/
+.nyc_output/
+*.lcov
+
+# Git and editor files
+.git/
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Build artifacts (keep only dist/)
+src/**/*.js
+src/**/*.d.ts
+src/**/*.map
+
+# Lock files (optional - some prefer to include them)
+bun.lock
+package-lock.json
+yarn.lock
+
+# Development scripts
+.github/
+scripts/
+docs/
+
+# Temporary files
+tmp/
+temp/
