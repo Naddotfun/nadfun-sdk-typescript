@@ -13,10 +13,10 @@ Buy tokens with MON including advanced gas management and slippage protection.
 export PRIVATE_KEY="your_private_key_here"
 export RPC_URL="https://testnet.monad.xyz"
 export TOKEN="0xTokenAddress"
-npm run example:buy
+bun run example:buy
 
 # Using command line arguments
-npm run example:buy -- --private-key your_private_key_here --rpc-url https://testnet.monad.xyz --token 0xTokenAddress --amount 0.1
+bun run example:buy -- --private-key your_private_key_here --rpc-url https://testnet.monad.xyz --token 0xTokenAddress --amount 0.1
 ```
 
 **Features:**
@@ -49,7 +49,7 @@ npm run example:buy -- --private-key your_private_key_here --rpc-url https://tes
 Sell tokens for MON with automatic approval and intelligent gas optimization.
 
 ```bash
-npm run example:sell -- --private-key your_private_key_here --rpc-url https://testnet.monad.xyz --token 0xTokenAddress --amount 100
+bun run example:sell -- --private-key your_private_key_here --rpc-url https://testnet.monad.xyz --token 0xTokenAddress --amount 100
 ```
 
 **Features:**
@@ -66,7 +66,7 @@ npm run example:sell -- --private-key your_private_key_here --rpc-url https://te
 Advanced gasless selling using EIP-2612 permit signatures.
 
 ```bash
-npm run example:sell-permit -- --private-key your_private_key_here --rpc-url https://testnet.monad.xyz --token 0xTokenAddress --amount 100
+bun run example:sell-permit -- --private-key your_private_key_here --rpc-url https://testnet.monad.xyz --token 0xTokenAddress --amount 100
 ```
 
 **Features:**
@@ -84,7 +84,7 @@ npm run example:sell-permit -- --private-key your_private_key_here --rpc-url htt
 Comprehensive ERC20 token interaction patterns.
 
 ```bash
-npm run example:basic-ops -- --private-key your_private_key_here --rpc-url https://testnet.monad.xyz --token 0xTokenAddress --recipient 0xRecipientAddress
+bun run example:basic-ops -- --private-key your_private_key_here --rpc-url https://testnet.monad.xyz --token 0xTokenAddress --recipient 0xRecipientAddress
 ```
 
 **Features:**
@@ -103,13 +103,13 @@ Historical bonding curve event analysis with batch processing.
 
 ```bash
 # Fetch all bonding curve events
-npm run example:curve-indexer -- --rpc-url https://testnet.monad.xyz
+bun run example:curve-indexer -- --rpc-url https://testnet.monad.xyz
 
 # Filter by specific tokens
-npm run example:curve-indexer -- --rpc-url https://testnet.monad.xyz --tokens 0xToken1,0xToken2
+bun run example:curve-indexer -- --rpc-url https://testnet.monad.xyz --tokens 0xToken1,0xToken2
 
 # Specific block range
-npm run example:curve-indexer -- --from-block 1000000 --to-block latest
+bun run example:curve-indexer -- --from-block 1000000 --to-block latest
 ```
 
 **Features:**
@@ -126,16 +126,16 @@ Live bonding curve event monitoring with real-time processing.
 
 ```bash
 # Monitor all bonding curve events
-npm run example:curve-stream -- --rpc-url https://testnet.monad.xyz
+bun run example:curve-stream -- --rpc-url https://testnet.monad.xyz
 
 # Filter specific event types
-EVENTS=Buy,Sell npm run example:curve-stream -- --rpc-url https://testnet.monad.xyz
+EVENTS=Buy,Sell bun run example:curve-stream -- --rpc-url https://testnet.monad.xyz
 
 # Filter specific tokens
-npm run example:curve-stream -- --rpc-url https://testnet.monad.xyz --tokens 0xToken1,0xToken2
+bun run example:curve-stream -- --rpc-url https://testnet.monad.xyz --tokens 0xToken1,0xToken2
 
 # Combined filtering (events AND tokens)
-EVENTS=Buy,Sell npm run example:curve-stream -- --rpc-url https://testnet.monad.xyz --tokens 0xToken1
+EVENTS=Buy,Sell bun run example:curve-stream -- --rpc-url https://testnet.monad.xyz --tokens 0xToken1
 ```
 
 **Features:**
@@ -212,7 +212,7 @@ All examples support command line arguments:
 1. **Install Dependencies**
 
 ```bash
-npm install
+bun install
 # or
 yarn install
 ```
@@ -220,7 +220,7 @@ yarn install
 2. **Build the SDK**
 
 ```bash
-npm run build
+bun run build
 ```
 
 3. **Configure Environment**
@@ -239,16 +239,16 @@ TOKEN=0xTokenAddress
 
 ```bash
 # Trading examples
-npm run example:buy
-npm run example:sell
-npm run example:sell-permit
+bun run example:buy
+bun run example:sell
+bun run example:sell-permit
 
 # Token operations
-npm run example:basic-ops
+bun run example:basic-ops
 
 # Event streaming
-npm run example:curve-indexer
-npm run example:curve-stream
+bun run example:curve-indexer
+bun run example:curve-stream
 ```
 
 ## 🛡️ Safety Features
@@ -272,27 +272,27 @@ export PRIVATE_KEY="0x1234..."
 export TOKEN="0xTokenAddress"
 
 # Run with default settings (0.1 MON, 5% slippage)
-npm run example:buy
+bun run example:buy
 
 # Customize amount and slippage
-npm run example:buy -- --amount 0.05 --slippage 3
+bun run example:buy -- --amount 0.05 --slippage 3
 ```
 
 2. **Token Analysis**
 
 ```bash
 # Get comprehensive token information
-npm run example:basic-ops -- --token 0xTokenAddress
+bun run example:basic-ops -- --token 0xTokenAddress
 ```
 
 3. **Live Monitoring**
 
 ```bash
 # Monitor all trading activity
-npm run example:curve-stream
+bun run example:curve-stream
 
 # Focus on specific tokens
-npm run example:curve-stream -- --tokens 0xToken1,0xToken2
+bun run example:curve-stream -- --tokens 0xToken1,0xToken2
 ```
 
 ## 📚 Advanced Usage
