@@ -1,50 +1,50 @@
-import { Address } from 'viem'
+/**
+ * Types Module - Centralized type definitions
+ *
+ * This file serves as the main entry point for all type definitions,
+ * All types are organized by domain
+ * and re-exported from here for easy importing.
+ */
 
-export interface BuyParams {
-  token: Address
-  to: Address
-  amountIn: bigint
-  amountOutMin: bigint
-  deadline?: number
-}
+// Trade-related types
+export type { BuyParams, SellParams, SellPermitParams, QuoteResult, GasConfig } from './trade'
 
-export interface SellParams {
-  token: Address
-  to: Address
-  amountIn: bigint
-  amountOutMin: bigint
-  deadline?: number
-}
+// Token-related types
+export type { TokenMetadata, TokenHealth, PermitSignature } from './token'
 
-export interface SellPermitParams {
-  token: Address
-  to: Address
-  amountIn: bigint
-  amountOutMin: bigint
-  amountAllowance: bigint
-  deadline?: number
-}
+// Bonding curve types
+export type {
+  CurveData,
+  CreateEvent,
+  BuyEvent,
+  SellEvent,
+  SyncEvent,
+  LockEvent,
+  ListedEvent,
+  BondingCurveEvent,
+} from './curve'
 
-export interface TokenMetadata {
-  name: string
-  symbol: string
-  decimals: number
-  totalSupply: bigint
-  address: string
-}
+// Export curve enums
+export { CurveEventType } from './curve'
 
-export interface QuoteResult {
-  router: Address
-  amount: bigint
-}
+// DEX-related types
+export type { BaseDexEvent, SwapEvent, PoolMetadata, PoolDiscoveryResult, DexEvent } from './dex'
 
-export interface CurveData {
-  reserveMON: bigint
-  reserveToken: bigint
-  k: bigint
-  tokenSupply: bigint
-  virtualMON: bigint
-  virtualToken: bigint
-  fee: bigint
-  listed: boolean
-}
+// Export DEX enums
+export { DexEventType } from './dex'
+
+// Stream common types
+export type { BaseEvent, StreamConfig, EventFilter, EventHandler, ErrorHandler } from './stream'
+
+// Export stream enums
+export { StreamStatus } from './stream'
+
+/**
+ * Re-export everything for convenience
+ * This allows importing with: import * as Types from '@nadfun/sdk/types'
+ */
+export * from './trade'
+export * from './token'
+export * from './curve'
+export * from './dex'
+export * from './stream'

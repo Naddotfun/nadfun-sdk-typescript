@@ -1,6 +1,6 @@
-# NADS Pump SDK Examples
+# NADS Fun SDK Examples
 
-This directory contains comprehensive examples demonstrating how to use the NADS Pump SDK for trading, token operations, and real-time event streaming.
+This directory contains comprehensive examples demonstrating how to use the NADS Fun SDK for trading, token operations, and real-time event streaming.
 
 ## 💰 Trading Examples
 

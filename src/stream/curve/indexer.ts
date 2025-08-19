@@ -1,6 +1,7 @@
 import type { PublicClient } from 'viem'
-import { CurveEventType, BondingCurveEvent } from './types'
-import { CONTRACTS } from '@/constants'
+import { createPublicClient, http } from 'viem'
+import { CurveEventType, BondingCurveEvent } from '@/types'
+import { CONTRACTS, CURRENT_CHAIN } from '@/constants'
 import {
   parseBondingCurveEvent,
   getCurveEventSignatures,
@@ -14,8 +15,25 @@ export class Indexer {
   private publicClient: PublicClient
   private bondingCurveAddress: string
 
-  constructor(publicClient: PublicClient) {
-    this.publicClient = publicClient
+  /**
+   * Create indexer with RPC URL (recommended)
+   */
+  constructor(rpcUrl: string)
+  /**
+   * Create indexer with existing PublicClient (advanced usage)
+   */
+  constructor(publicClient: PublicClient)
+  constructor(clientOrUrl: string | PublicClient) {
+    if (typeof clientOrUrl === 'string') {
+      // Create PublicClient internally from RPC URL
+      this.publicClient = createPublicClient({
+        chain: CURRENT_CHAIN,
+        transport: http(clientOrUrl),
+      })
+    } else {
+      // Use provided PublicClient
+      this.publicClient = clientOrUrl
+    }
     this.bondingCurveAddress = CONTRACTS.MONAD_TESTNET.CURVE
   }
 

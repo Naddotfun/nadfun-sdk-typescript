@@ -1,6 +1,7 @@
 import { createPublicClient, http, webSocket, parseEventLogs, type Log } from 'viem'
-import { DexEventType, SwapEvent } from './types'
+import { DexEventType, SwapEvent } from '@/types'
 import { v3PoolAbi } from '@/abis/v3pool'
+import { CURRENT_CHAIN } from '@/constants'
 import type { Address, PublicClient } from 'viem'
 
 /**
@@ -28,6 +29,7 @@ export class Stream {
   static async createWebSocket(wsUrl: string, poolAddresses: Address[]): Promise<Stream> {
     try {
       const client = createPublicClient({
+        chain: CURRENT_CHAIN,
         transport: webSocket(wsUrl),
       })
       return new Stream(client, poolAddresses)
@@ -35,6 +37,7 @@ export class Stream {
       console.warn('WebSocket creation failed, falling back to HTTP:', error)
       // Fallback to HTTP
       const client = createPublicClient({
+        chain: CURRENT_CHAIN,
         transport: http(wsUrl.replace('wss:', 'https:').replace('ws:', 'http:')),
       })
       return new Stream(client, poolAddresses)
@@ -46,6 +49,7 @@ export class Stream {
    */
   static async createHttp(rpcUrl: string, poolAddresses: Address[]): Promise<Stream> {
     const client = createPublicClient({
+      chain: CURRENT_CHAIN,
       transport: http(rpcUrl),
     })
     return new Stream(client, poolAddresses)
@@ -55,25 +59,23 @@ export class Stream {
    * Create stream by discovering pools for token addresses
    * Note: Requires factory and WMON addresses to be configured
    */
-  static async discoverPoolsForTokens(
-    client: PublicClient,
-    tokenAddresses: Address[]
-  ): Promise<Stream> {
+  static async discoverPoolsForTokens(rpcUrl: string, tokenAddresses: Address[]): Promise<Stream> {
     console.log(`🔍 Discovering pools for ${tokenAddresses.length} tokens...`)
     const poolAddresses: Address[] = []
     console.log(`🔍 Pool discovery not yet implemented - using empty pool list`)
 
-    return new Stream(client, poolAddresses)
+    return Stream.createHttp(rpcUrl, poolAddresses)
   }
 
   /**
    * Create WebSocket stream by discovering pools for token addresses
    */
   static async discoverPoolsForTokensWs(wsUrl: string, tokenAddresses: Address[]): Promise<Stream> {
-    const client = createPublicClient({
-      transport: webSocket(wsUrl),
-    })
-    return Stream.discoverPoolsForTokens(client, tokenAddresses)
+    console.log(`🔍 Discovering pools for ${tokenAddresses.length} tokens...`)
+    const poolAddresses: Address[] = []
+    console.log(`🔍 Pool discovery not yet implemented - using empty pool list`)
+
+    return Stream.createWebSocket(wsUrl, poolAddresses)
   }
 
   /**

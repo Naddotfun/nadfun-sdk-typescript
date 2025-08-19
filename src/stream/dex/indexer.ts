@@ -1,7 +1,8 @@
 import type { Address, PublicClient } from 'viem'
-import { toEventSelector, parseAbiItem } from 'viem'
-import { SwapEvent, PoolMetadata } from './types'
+import { createPublicClient, http, toEventSelector, parseAbiItem } from 'viem'
+import { SwapEvent, PoolMetadata } from '@/types'
 import { parseSwapEvent, sortEventsChronologically } from './parser'
+import { CURRENT_CHAIN } from '@/constants'
 
 /**
  * Historical indexer for Uniswap V3 Swap events
@@ -12,8 +13,25 @@ export class Indexer {
   private poolAddresses: Address[]
   private poolMetadata: Map<string, PoolMetadata> = new Map()
 
-  constructor(publicClient: PublicClient, poolAddresses: Address[]) {
-    this.publicClient = publicClient
+  /**
+   * Create indexer with RPC URL and pool addresses (recommended)
+   */
+  constructor(rpcUrl: string, poolAddresses: Address[])
+  /**
+   * Create indexer with existing PublicClient and pool addresses (advanced usage)
+   */
+  constructor(publicClient: PublicClient, poolAddresses: Address[])
+  constructor(clientOrUrl: string | PublicClient, poolAddresses: Address[]) {
+    if (typeof clientOrUrl === 'string') {
+      // Create PublicClient internally from RPC URL
+      this.publicClient = createPublicClient({
+        chain: CURRENT_CHAIN,
+        transport: http(clientOrUrl),
+      })
+    } else {
+      // Use provided PublicClient
+      this.publicClient = clientOrUrl
+    }
     this.poolAddresses = poolAddresses
   }
 
@@ -22,27 +40,21 @@ export class Indexer {
    * Uses NADS standard 10_000 fee tier (1%)
    * Note: Requires factory and WMON addresses to be configured
    */
-  static async discoverPoolsForTokens(
-    publicClient: PublicClient,
-    tokenAddresses: Address[]
-  ): Promise<Indexer> {
+  static async discoverPoolsForTokens(rpcUrl: string, tokenAddresses: Address[]): Promise<Indexer> {
     console.log(`🔍 Discovering pools for ${tokenAddresses.length} tokens...`)
 
     // Pool discovery requires factory contract integration
     const poolAddresses: Address[] = []
 
     console.log(`🔍 Pool discovery not yet implemented - using empty pool list`)
-    return new Indexer(publicClient, poolAddresses)
+    return new Indexer(rpcUrl, poolAddresses)
   }
 
   /**
    * Create indexer by discovering pool for a single token
    */
-  static async discoverPoolForToken(
-    publicClient: PublicClient,
-    tokenAddress: Address
-  ): Promise<Indexer> {
-    return Indexer.discoverPoolsForTokens(publicClient, [tokenAddress])
+  static async discoverPoolForToken(rpcUrl: string, tokenAddress: Address): Promise<Indexer> {
+    return Indexer.discoverPoolsForTokens(rpcUrl, [tokenAddress])
   }
 
   /**

@@ -1,12 +1,12 @@
 /**
  * Gas Estimation Utility Example
  *
- * Advanced gas estimation and optimization tools for NADS Pump SDK operations.
+ * Advanced gas estimation and optimization tools for NADS Fun SDK operations.
  * Helps determine optimal gas settings for different market conditions.
  *
  * Usage:
- * npm run example:gas-estimator
- * npm run example:gas-estimator -- --token 0xTokenAddress --operation buy
+ * bun run example:gas-estimator
+ * bun run example:gas-estimator -- --token 0xTokenAddress --operation buy
  */
 
 import { config } from 'dotenv'
@@ -44,7 +44,7 @@ const OPERATION = args['operation'] || 'buy' // buy, sell, approve, transfer
 const AMOUNT = parseUnits(args['amount'] || '0.1', 18)
 
 async function executeGasEstimation() {
-  console.log('⛽ NADS Pump SDK - Advanced Gas Estimation Tool\n')
+  console.log('⛽ NADS Fun SDK - Advanced Gas Estimation Tool\n')
 
   try {
     // Initialize instances
@@ -274,9 +274,9 @@ if (require.main === module) {
       console.log('\n🎉 Gas analysis completed!')
       console.log('💡 Use these insights to optimize your transaction costs')
       console.log('📊 Run with different operations for comprehensive analysis:')
-      console.log('   npm run example:gas-estimator -- --operation buy')
-      console.log('   npm run example:gas-estimator -- --operation sell')
-      console.log('   npm run example:gas-estimator -- --operation approve')
+      console.log('   bun run example:gas-estimator -- --operation buy')
+      console.log('   bun run example:gas-estimator -- --operation sell')
+      console.log('   bun run example:gas-estimator -- --operation approve')
       process.exit(0)
     })
     .catch(error => {

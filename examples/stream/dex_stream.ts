@@ -11,7 +11,6 @@
  */
 
 import { config } from 'dotenv'
-import { createPublicClient, http } from 'viem'
 import { monadTestnet } from 'viem/chains'
 import { Stream as DexStream } from '../../src/stream/dex/stream'
 import { parseArgs } from 'util'
@@ -33,15 +32,14 @@ const { values: args } = parseArgs({
 })
 
 const RPC_URL = args['rpc-url'] || process.env.RPC_URL || monadTestnet.rpcUrls.default.http[0]
-const WS_URL = args['ws-url'] || process.env.WS_URL
-const POOL_ADDRESSES = args.pools?.split(',').map(p => p.trim()) || []
+const POOL_ADDRESSES = (args.pools?.split(',').map(p => p.trim()) || []) as `0x${string}`[]
 const TOKEN_ADDRESS = args.token
 const TOKEN_ADDRESSES = args.tokens?.split(',').map(t => t.trim()) || []
 
 let swapCount = 0
 
 async function runDexStreamExample() {
-  console.log('🏊 NADS Pump SDK - DEX Stream Example\n')
+  console.log('🏊 NADS Fun SDK - DEX Stream Example\n')
 
   // Determine tokens to use for pool discovery
   const tokensForDiscovery = []
@@ -65,31 +63,25 @@ async function runDexStreamExample() {
   }
 
   try {
-    // Initialize client using SDK standards
-    const client = createPublicClient({
-      chain: monadTestnet,
-      transport: http(RPC_URL),
-    })
-
     let stream: DexStream
 
     if (POOL_ADDRESSES.length > 0) {
-      // Use provided pool addresses directly
+      // Use provided pool addresses directly - much simpler now!
       console.log('📍 Using provided pool addresses...')
-      stream = new DexStream(client, POOL_ADDRESSES)
+      stream = await DexStream.createHttp(RPC_URL, POOL_ADDRESSES)
 
       console.log('📋 Configuration:')
       console.log(`   Mode: Direct pool monitoring`)
       console.log(`   Pool Count: ${POOL_ADDRESSES.length}`)
       console.log(`   Pools: ${POOL_ADDRESSES.join(', ')}`)
     } else {
-      // Use pool discovery for token addresses
+      // Use pool discovery for token addresses - also simplified!
       console.log('🔍 Discovering pools for token addresses...')
       console.log(`   Tokens: ${tokensForDiscovery.join(', ')}`)
       console.log('   Using NADS standard fee tier (1%)')
       console.log('')
 
-      stream = await DexStream.discoverPoolsForTokens(client, tokensForDiscovery)
+      stream = await DexStream.discoverPoolsForTokens(RPC_URL, tokensForDiscovery)
 
       const discoveredPools = stream.getPoolAddresses()
       console.log('📋 Configuration:')

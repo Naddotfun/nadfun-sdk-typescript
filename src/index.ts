@@ -3,8 +3,38 @@ export { Trade } from './trade'
 export { Token } from './token'
 
 // Types
-export type { BuyParams, SellParams, TokenMetadata, QuoteResult, CurveData } from './types'
-export type { GasConfig } from './trade'
+export type {
+  // Trade types
+  BuyParams,
+  SellParams,
+  SellPermitParams,
+  QuoteResult,
+  GasConfig,
+  // Token types
+  TokenMetadata,
+  TokenHealth,
+  PermitSignature,
+  // Curve types
+  CurveData,
+  BondingCurveEvent,
+  CreateEvent,
+  BuyEvent,
+  SellEvent,
+  SyncEvent,
+  LockEvent,
+  ListedEvent,
+  // DEX types
+  SwapEvent,
+  PoolMetadata,
+  DexEvent,
+  // Stream types
+  BaseEvent,
+  StreamConfig,
+  EventFilter,
+} from './types'
+
+// Export enums
+export { CurveEventType, DexEventType, StreamStatus } from './types'
 
 // Utils
 export {

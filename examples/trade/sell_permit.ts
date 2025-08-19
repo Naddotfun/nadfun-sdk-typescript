@@ -5,13 +5,13 @@
  * This combines approval and sell in a single transaction.
  *
  * Usage:
- * npm run example:sell-permit
- * npm run example:sell-permit -- --token 0xTokenAddress --amount 100
+ * bun run example:sell-permit
+ * bun run example:sell-permit -- --token 0xTokenAddress --amount 100
  */
 
 import { config } from 'dotenv'
 import { Trade } from '../../src/trade'
-import { Token } from '../../src/token'
+import { Token } from '../../src/Token'
 import { formatUnits, parseUnits } from 'viem'
 import { monadTestnet } from 'viem/chains'
 import { parseArgs } from 'util'
@@ -37,14 +37,18 @@ const RPC_URL = args['rpc-url'] || process.env.RPC_URL || monadTestnet.rpcUrls.d
 const PRIVATE_KEY =
   args['private-key'] ||
   process.env.PRIVATE_KEY ||
-  '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef'
+  '0x1234567890123456789012345678901234567890123456789012345678901234'
 const TOKEN_ADDRESS =
   args['token'] || process.env.TOKEN || '0xce3D002DD6ECc97a628ad04ffA59DA3D91a589B1'
 const AMOUNT_TOKENS = parseUnits(args['amount'] || '100', 18) // Default 100 tokens
 const SLIPPAGE_PERCENT = Number(args['slippage'] || '5') // Default 5%
 
 async function executeSellPermitExample() {
-  console.log('⚡ NADS Pump SDK - Gasless Sell (EIP-2612 Permit) Example\n')
+  console.log('⚡ NADS Fun SDK - Gasless Sell (EIP-2612 Permit) Example\n')
+  console.log('🆕 New: Optimized nonce management for better performance!')
+  console.log('    - Automatic nonce reading (default)')
+  console.log('    - Manual nonce provision (faster for bots)')
+  console.log('')
 
   try {
     // Initialize instances
@@ -143,6 +147,10 @@ async function executeSellPermitExample() {
     console.log('')
 
     try {
+      // 🆕 NEW: You can now provide permitNonce for better performance!
+      // For bots: Pre-read nonce to eliminate one contract call
+      // const nonce = await trade.getNonce(TOKEN_ADDRESS as `0x${string}`)
+
       const sellPermitParams = {
         token: TOKEN_ADDRESS as `0x${string}`,
         to: trade.address as `0x${string}`,
@@ -150,9 +158,11 @@ async function executeSellPermitExample() {
         amountOutMin: minMON,
         amountAllowance: AMOUNT_TOKENS,
         deadline,
+        // permitNonce: nonce,  // 🚀 Uncomment this to use pre-computed nonce (faster!)
       }
 
       console.log('🔐 Generating permit signature and executing transaction...')
+      console.log('💡 Nonce management: automatic (can be manual for better performance)')
       const permitSellTx = await trade.sellPermit(sellPermitParams, quote.router, { routerType })
 
       console.log('✅ Permit sell transaction successful!')

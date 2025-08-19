@@ -1,5 +1,5 @@
 import { parseAbi, parseEventLogs, Log } from 'viem'
-import { DexEventType, SwapEvent } from './types'
+import { DexEventType, SwapEvent } from '@/types'
 
 // Uniswap V3 Swap Event ABI
 export const SWAP_EVENT_ABI = parseAbi([

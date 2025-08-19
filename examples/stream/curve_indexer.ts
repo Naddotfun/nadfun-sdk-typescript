@@ -5,17 +5,15 @@
  * Fetches and analyzes Create, Buy, Sell, Sync, Lock, and Listed events.
  *
  * Usage:
- * npm run example:curve-indexer
- * npm run example:curve-indexer -- --tokens 0xToken1,0xToken2
- * npm run example:curve-indexer -- --from-block 1000000 --to-block 1010000
+ * bun run example:curve-indexer
+ * bun run example:curve-indexer -- --tokens 0xToken1,0xToken2
+ * bun run example:curve-indexer -- --from-block 1000000 --to-block 1010000
  */
 
 import { config } from 'dotenv'
-import { createPublicClient, http } from 'viem'
 import { monadTestnet } from 'viem/chains'
 import { Indexer as CurveIndexer } from '../../src/stream/curve/indexer'
-import { CurveEventType } from '../../src/stream/curve/types'
-import type { BondingCurveEvent } from '../../src/stream/curve/types'
+import { CurveEventType, BondingCurveEvent } from '../../src/types'
 import { parseArgs } from 'util'
 
 // Load environment variables
@@ -47,16 +45,11 @@ const EVENT_FILTER = args['events']?.split(',').map(e => e.trim() as CurveEventT
 ]
 
 async function executeCurveIndexing() {
-  console.log('📊 NADS Pump SDK - Bonding Curve Event Indexer\n')
+  console.log('📊 NADS Fun SDK - Bonding Curve Event Indexer\n')
 
   try {
-    // Initialize client and indexer
-    const client = createPublicClient({
-      chain: monadTestnet,
-      transport: http(RPC_URL),
-    })
-
-    const indexer = new CurveIndexer(client)
+    // Initialize indexer with just RPC URL - much simpler!
+    const indexer = new CurveIndexer(RPC_URL)
 
     console.log('📋 Indexing Configuration:')
     console.log(`   RPC URL: ${RPC_URL}`)
@@ -115,7 +108,7 @@ async function executeCurveIndexing() {
     })
 
     // Unique tokens analysis
-    const uniqueTokens = [...new Set(events.map(e => e.token))]
+    const uniqueTokens = Array.from(new Set(events.map(e => e.token)))
     console.log(`\n   🪙 Token Analysis:`)
     console.log(`     Unique tokens: ${uniqueTokens.length}`)
     if (uniqueTokens.length > 0) {
@@ -209,24 +202,24 @@ function showUsageExamples() {
   console.log('')
 
   console.log('1. 🌐 Index all events from recent blocks:')
-  console.log('   npm run example:curve-indexer')
+  console.log('   bun run example:curve-indexer')
   console.log('')
 
   console.log('2. 🎯 Filter specific tokens:')
-  console.log('   npm run example:curve-indexer -- --tokens 0xToken1,0xToken2,0xToken3')
+  console.log('   bun run example:curve-indexer -- --tokens 0xToken1,0xToken2,0xToken3')
   console.log('')
 
   console.log('3. 📅 Specific block range:')
-  console.log('   npm run example:curve-indexer -- --from-block 1500000 --to-block 1600000')
+  console.log('   bun run example:curve-indexer -- --from-block 1500000 --to-block 1600000')
   console.log('')
 
   console.log('4. 🎪 Filter event types:')
-  console.log('   npm run example:curve-indexer -- --events Buy,Sell,Create')
+  console.log('   bun run example:curve-indexer -- --events Buy,Sell,Create')
   console.log('')
 
   console.log('5. 🎛️  Combined filtering:')
   console.log(
-    '   npm run example:curve-indexer -- --tokens 0xToken1 --events Buy,Sell --from-block 1500000'
+    '   bun run example:curve-indexer -- --tokens 0xToken1 --events Buy,Sell --from-block 1500000'
   )
   console.log('')
 

@@ -4,8 +4,8 @@
  * Sell tokens for MON with automatic approval and intelligent gas optimization.
  *
  * Usage:
- * npm run example:sell
- * npm run example:sell -- --token 0xTokenAddress --amount 100
+ * bun run example:sell
+ * bun run example:sell -- --token 0xTokenAddress --amount 100
  */
 
 import { config } from 'dotenv'
@@ -43,7 +43,7 @@ const AMOUNT_TOKENS = parseUnits(args['amount'] || '100', 18) // Default 100 tok
 const SLIPPAGE_PERCENT = Number(args['slippage'] || '5') // Default 5%
 
 async function executeSellExample() {
-  console.log('💸 NADS Pump SDK - Sell Tokens Example\n')
+  console.log('💸 NADS Fun SDK - Sell Tokens Example\n')
 
   try {
     // Initialize instances
@@ -186,26 +186,7 @@ async function executeSellExample() {
     console.log('')
 
     try {
-      if (approvalNeeded) {
-        console.log('🔒 Step 1: Executing approval...')
-        const approvalTx = await token.checkAndApprove(
-          TOKEN_ADDRESS as `0x${string}`,
-          quote.router,
-          AMOUNT_TOKENS
-        )
-
-        if (approvalTx) {
-          console.log(`   ✅ Approval transaction: ${approvalTx}`)
-          console.log(`   🔗 View on explorer: https://testnet.monadexplorer.com/tx/${approvalTx}`)
-          console.log('   ⏳ Waiting for approval confirmation...')
-          await new Promise(resolve => setTimeout(resolve, 15000)) // Wait 15 seconds
-          console.log('   ✅ Approval should be confirmed, proceeding with sell...')
-        } else {
-          console.log('   ✅ Sufficient allowance already exists')
-        }
-      }
-
-      console.log('💸 Step 2: Executing sell transaction...')
+      console.log('💸 Executing sell with automatic approval (if needed)...')
       const sellParams = {
         token: TOKEN_ADDRESS as `0x${string}`,
         to: trade.address as `0x${string}`,
@@ -213,13 +194,25 @@ async function executeSellExample() {
         amountOutMin: minMON,
       }
 
-      const sellTx = await trade.sell(sellParams, quote.router, { routerType })
+      // Use the new sellWithApprove convenience function
+      const result = await trade.sellWithApprove(sellParams, quote.router, { routerType })
 
-      console.log('✅ Sell transaction submitted!')
-      console.log(`   Transaction Hash: ${sellTx}`)
-      console.log(`   🔗 View on explorer: https://testnet.monadexplorer.com/tx/${sellTx}`)
+      if (result.approveTx) {
+        console.log(`✅ Approval transaction: ${result.approveTx}`)
+        console.log(
+          `   🔗 View on explorer: https://testnet.monadexplorer.com/tx/${result.approveTx}`
+        )
+      }
+
+      console.log(`✅ Sell transaction: ${result.sellTx}`)
+      console.log(`   🔗 View on explorer: https://testnet.monadexplorer.com/tx/${result.sellTx}`)
       console.log('')
       console.log('⏳ Transaction confirmation in progress...')
+      console.log('')
+      console.log('🆕 New API Features:')
+      console.log('   - Pure sell() function available for bots (no auto-approval)')
+      console.log('   - checkAllowance() and approveToken() for manual control')
+      console.log('   - sellWithApprove() for convenience (used above)')
     } catch (error: any) {
       console.error('❌ Sell transaction failed!')
       console.error(`   Error: ${error.message}`)

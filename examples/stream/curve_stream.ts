@@ -5,14 +5,14 @@
  * for real-time bonding curve event monitoring.
  *
  * Usage:
- * npm run example:curve-stream
+ * bun run example:curve-stream
  */
 
 import { config } from 'dotenv'
 import { createPublicClient, http } from 'viem'
 import { monadTestnet } from 'viem/chains'
 import { Stream as CurveStream } from '../../src/stream/curve/Stream'
-import { CurveEventType } from '../../src/stream/curve/types'
+import { CurveEventType } from '../../src/types'
 import { parseArgs } from 'util'
 
 // Load environment variables
@@ -34,7 +34,7 @@ const TOKEN_ADDRESS = args.token || process.env.TOKEN
 let eventCount = 0
 
 async function runCurveStreamExample() {
-  console.log('📊 NADS Pump SDK - Curve Stream Example\n')
+  console.log('📊 NADS Fun SDK - Curve Stream Example\n')
 
   try {
     // Initialize client using SDK standards

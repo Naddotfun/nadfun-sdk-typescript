@@ -4,8 +4,8 @@
  * Buy tokens with MON including advanced gas management and slippage protection.
  *
  * Usage:
- * npm run example:buy
- * npm run example:buy -- --token 0xTokenAddress --amount 0.1
+ * bun run example:buy
+ * bun run example:buy -- --token 0xTokenAddress --amount 0.1
  */
 
 import { config } from 'dotenv'
@@ -42,7 +42,7 @@ const AMOUNT_MON = parseUnits(args['amount'] || '0.1', 18) // Default 0.1 MON
 const SLIPPAGE_PERCENT = Number(args['slippage'] || '5') // Default 5%
 
 async function executeBuyExample() {
-  console.log('🛒 NADS Pump SDK - Buy Tokens Example\n')
+  console.log('🛒 NADS Fun SDK - Buy Tokens Example\n')
 
   try {
     // Initialize Trade instance

@@ -1,5 +1,5 @@
 import { parseAbiItem, parseAbi, parseEventLogs, toEventSelector, Log, AbiEvent } from 'viem'
-import { CurveEventType, BondingCurveEvent } from './types'
+import { CurveEventType, BondingCurveEvent } from '@/types'
 
 // Bonding Curve Event ABIs
 export const CURVE_EVENT_ABIS = parseAbi([

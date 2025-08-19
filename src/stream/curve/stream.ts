@@ -1,4 +1,4 @@
-import { CurveEventType, BondingCurveEvent } from './types'
+import { CurveEventType, BondingCurveEvent } from '@/types'
 import { CONTRACTS } from '@/constants'
 import { parseBondingCurveEvent } from './parser'
 import type { PublicClient, Log } from 'viem'
