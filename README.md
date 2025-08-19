@@ -137,8 +137,8 @@ console.log(`Token: ${metadata.name} (${metadata.symbol})`)
 const balance = await tokenHelper.getBalance(token, wallet)
 const allowance = await tokenHelper.getAllowance(token, owner, spender)
 
-// Approve tokens with smart approval
-const txHash = await tokenHelper.smartApprove(token, spender, amount)
+// Approve tokens with smart approval (checks allowance first)
+const txHash = await tokenHelper.checkAndApprove(token, spender, amount)
 ```
 
 ### 🔄 Real-time Event Streaming
@@ -278,7 +278,7 @@ bun run example:sell-permit -- --private-key your_private_key_here --rpc-url htt
 ### Token Examples
 
 ```bash
-bun run example:basic-ops # Basic ERC-20 operations
+bun run example:token-utils # Comprehensive token utilities and batch operations
 ```
 
 ### Stream Examples

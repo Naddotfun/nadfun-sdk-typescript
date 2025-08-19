@@ -19,7 +19,8 @@
     "example:buy": "tsx examples/trade/buy.ts",
     "example:sell": "tsx examples/trade/sell.ts",
     "example:sell-permit": "tsx examples/trade/sell_permit.ts",
-    "example:basic-ops": "tsx examples/token/basic_operations.ts",
+    "example:token-utils": "tsx examples/token/token_utils.ts",
+    "example:curve-indexer": "tsx examples/stream/curve_indexer.ts",
     "example:curve-stream": "tsx examples/stream/curve_stream.ts",
     "example:dex-stream": "tsx examples/stream/dex_stream.ts",
     "example:gas-estimator": "tsx examples/utils/gas_estimator.ts"
