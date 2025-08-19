@@ -12,40 +12,58 @@
  * Calculate minimum amount out with slippage protection
  * Used for buy/sell operations where you want to set amountOutMin
  *
+ * Uses basis points (10000 = 100%) for precision with decimal slippage
+ *
  * @param amountOut Expected output amount
- * @param slippagePercent Slippage tolerance (e.g., 5 for 5%)
+ * @param slippagePercent Slippage tolerance (e.g., 5.0 for 5%, 0.5 for 0.5%)
  * @returns Minimum amount out considering slippage
  *
  * @example
  * const expectedOut = parseEther("100")
- * const minOut = calculateMinAmountOut(expectedOut, 5) // 5% slippage
+ * const minOut = calculateMinAmountOut(expectedOut, 5.0) // 5% slippage
  * // Result: 95 tokens minimum
+ * const minOut2 = calculateMinAmountOut(expectedOut, 0.5) // 0.5% slippage  
+ * // Result: 99.5 tokens minimum
  */
 export function calculateMinAmountOut(amountOut: bigint, slippagePercent: number): bigint {
-  if (slippagePercent < 0 || slippagePercent > 100) {
-    throw new Error('Slippage percent must be between 0 and 100')
+  if (slippagePercent < 0 || slippagePercent >= 100) {
+    throw new Error('Slippage percent must be between 0 and 100 (exclusive)')
   }
-  return (amountOut * BigInt(100 - slippagePercent)) / BigInt(100)
+  
+  // Convert to basis points to avoid floating point errors
+  const slippageBp = Math.floor(slippagePercent * 100)
+  const remainingBp = 10000 - slippageBp
+  
+  return (amountOut * BigInt(remainingBp)) / BigInt(10000)
 }
 
 /**
  * Calculate maximum amount in with slippage protection
  * Used for operations where you want to limit the input amount
  *
+ * Uses basis points (10000 = 100%) for precision with decimal slippage
+ *
  * @param amountIn Expected input amount
- * @param slippagePercent Slippage tolerance (e.g., 5 for 5%)
+ * @param slippagePercent Slippage tolerance (e.g., 5.0 for 5%, 0.5 for 0.5%)
  * @returns Maximum amount in considering slippage
  *
  * @example
  * const expectedIn = parseEther("100")
- * const maxIn = calculateMaxAmountIn(expectedIn, 5) // 5% slippage
+ * const maxIn = calculateMaxAmountIn(expectedIn, 5.0) // 5% slippage
  * // Result: 105 tokens maximum
+ * const maxIn2 = calculateMaxAmountIn(expectedIn, 0.5) // 0.5% slippage
+ * // Result: 100.5 tokens maximum
  */
 export function calculateMaxAmountIn(amountIn: bigint, slippagePercent: number): bigint {
-  if (slippagePercent < 0 || slippagePercent > 100) {
-    throw new Error('Slippage percent must be between 0 and 100')
+  if (slippagePercent < 0 || slippagePercent >= 100) {
+    throw new Error('Slippage percent must be between 0 and 100 (exclusive)')
   }
-  return (amountIn * BigInt(100 + slippagePercent)) / BigInt(100)
+  
+  // Convert to basis points to avoid floating point errors
+  const slippageBp = Math.floor(slippagePercent * 100)
+  const totalBp = 10000 + slippageBp
+  
+  return (amountIn * BigInt(totalBp)) / BigInt(10000)
 }
 
 /**
