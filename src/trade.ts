@@ -1,33 +1,16 @@
 import type { Address, GetContractReturnType, PrivateKeyAccount } from 'viem'
 import type { PublicClient, WalletClient } from 'viem'
-import type { BuyParams, SellParams, QuoteResult, CurveData, SellPermitParams } from '@/types'
+import type { BuyParams, SellParams, QuoteResult, CurveData, SellPermitParams, GasConfig } from '@/types'
 
-import {
-  createPublicClient,
-  createWalletClient,
-  http,
-  getContract,
-  encodeFunctionData,
-  erc20Abi,
-} from 'viem'
+import { createPublicClient, createWalletClient, http, getContract, encodeFunctionData } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
 import { CONTRACTS, CURRENT_CHAIN, DEFAULT_DEADLINE_SECONDS } from '@/constants'
 import { BONDING_ROUTER_GAS_CONFIG, DEX_ROUTER_GAS_CONFIG } from '@/utils/gasConfig'
 import { curveAbi, lensAbi, routerAbi } from '@/abis'
 import { getPermitSignature } from './utils/permit'
+import { Token } from './token'
 
-export interface GasConfig {
-  bondingRouter?: {
-    buy?: bigint
-    sell?: bigint
-    sellPermit?: bigint
-  }
-  dexRouter?: {
-    buy?: bigint
-    sell?: bigint
-    sellPermit?: bigint
-  }
-}
+// GasConfig moved to src/types/trade.ts
 
 export class Trade {
   public lens: GetContractReturnType<typeof lensAbi, PublicClient, Address>
@@ -36,6 +19,7 @@ export class Trade {
   public walletClient: WalletClient
   public account: PrivateKeyAccount
   public gasConfig: Required<GasConfig>
+  private tokenManager: Token
 
   constructor(rpcUrl: string, privateKey: string, gasConfig?: GasConfig) {
     this.publicClient = createPublicClient({
@@ -63,6 +47,9 @@ export class Trade {
         sellPermit: gasConfig?.dexRouter?.sellPermit ?? DEX_ROUTER_GAS_CONFIG.SELL_PERMIT,
       },
     }
+
+    // Initialize token manager for delegation
+    this.tokenManager = new Token(rpcUrl, privateKey)
 
     this.lens = getContract({
       address: CONTRACTS.MONAD_TESTNET.LENS,
@@ -159,6 +146,10 @@ export class Trade {
     return tx
   }
 
+  /**
+   * Pure sell function - executes sell without checking allowance
+   * Faster execution for bots and advanced users who manage approvals separately
+   */
   async sell(
     params: SellParams,
     router: Address,
@@ -169,37 +160,6 @@ export class Trade {
     }
   ): Promise<string> {
     const deadline = params.deadline ?? Math.floor(Date.now() / 1000) + DEFAULT_DEADLINE_SECONDS
-
-    const allowance = await this.publicClient.readContract({
-      address: params.token,
-      abi: erc20Abi,
-      functionName: 'allowance',
-      args: [this.account.address, router],
-    })
-
-    if (allowance < params.amountIn) {
-      const approveData = encodeFunctionData({
-        abi: erc20Abi,
-        functionName: 'approve',
-        args: [router, params.amountIn],
-      })
-
-      const gasLimit = await this.publicClient.estimateGas({
-        account: this.account,
-        to: params.token,
-        data: approveData,
-      })
-
-      const approveTx = await this.walletClient.sendTransaction({
-        account: this.account,
-        to: params.token,
-        data: approveData,
-        gas: gasLimit,
-        nonce: options?.nonce,
-        chain: CURRENT_CHAIN,
-      })
-      return approveTx
-    }
 
     const sellParams = {
       amountIn: params.amountIn,
@@ -234,19 +194,89 @@ export class Trade {
     return tx
   }
 
-  async sellPermit(
-    params: SellPermitParams,
-    router: Address,
+  /**
+   * Check current allowance for a token and spender
+   * Delegates to Token class for consistency
+   */
+  async getAllowance(token: Address, spender: Address): Promise<bigint> {
+    return await this.tokenManager.getAllowance(token, spender)
+  }
+
+  /**
+   * @deprecated Use getAllowance instead
+   * Kept for backward compatibility
+   */
+  async checkAllowance(token: Address, spender: Address): Promise<bigint> {
+    return await this.getAllowance(token, spender)
+  }
+
+  /**
+   * Approve token spending - delegates to Token class with trade-specific optimizations
+   * Returns transaction hash
+   */
+  async approveToken(
+    token: Address,
+    spender: Address,
+    amount: bigint,
     options?: {
-      routerType?: 'bonding' | 'dex'
       gasLimit?: bigint
       nonce?: number
     }
   ): Promise<string> {
-    const deadline = params.deadline ?? Math.floor(Date.now() / 1000) + DEFAULT_DEADLINE_SECONDS
+    // Delegate to Token class but maintain trade-specific gas optimization if needed
+    return await this.tokenManager.approve(token, spender, amount, {
+      gasLimit: options?.gasLimit,
+    })
+  }
 
-    const nonce = await this.publicClient.readContract({
-      address: params.token,
+  /**
+   * Convenience function: sell with automatic approval if needed
+   * Use this if you want the old behavior with automatic approval
+   * Returns { approveTx?: string, sellTx: string }
+   */
+  async sellWithApprove(
+    params: SellParams,
+    router: Address,
+    options?: {
+      routerType?: 'bonding' | 'dex'
+      gasLimit?: bigint
+      approveGasLimit?: bigint
+      nonce?: number
+    }
+  ): Promise<{ approveTx?: string; sellTx: string }> {
+    const allowance = await this.getAllowance(params.token, router)
+
+    let approveTx: string | undefined
+
+    if (allowance < params.amountIn) {
+      // Need approval first
+      approveTx = await this.approveToken(params.token, router, params.amountIn, {
+        gasLimit: options?.approveGasLimit,
+        nonce: options?.nonce,
+      })
+
+      // Wait a bit for approval to be mined
+      console.log('⏳ Waiting for approval confirmation...')
+      await new Promise(resolve => setTimeout(resolve, 3000))
+    }
+
+    // Execute sell
+    const sellTx = await this.sell(params, router, {
+      routerType: options?.routerType,
+      gasLimit: options?.gasLimit,
+      nonce: approveTx ? undefined : options?.nonce, // Don't reuse nonce if we used it for approve
+    })
+
+    return { approveTx, sellTx }
+  }
+
+  /**
+   * Get current nonce for permit signature
+   * Separated for manual nonce management
+   */
+  async getNonce(token: Address): Promise<bigint> {
+    return (await this.publicClient.readContract({
+      address: token,
       abi: [
         {
           type: 'function',
@@ -270,7 +300,26 @@ export class Trade {
       ],
       functionName: 'nonces',
       args: [this.account.address],
-    })
+    })) as bigint
+  }
+
+  /**
+   * Sell with permit - optimized for speed
+   * If permitNonce is provided, skips nonce reading (faster for bots)
+   */
+  async sellPermit(
+    params: SellPermitParams,
+    router: Address,
+    options?: {
+      routerType?: 'bonding' | 'dex'
+      gasLimit?: bigint
+      nonce?: number
+    }
+  ): Promise<string> {
+    const deadline = params.deadline ?? Math.floor(Date.now() / 1000) + DEFAULT_DEADLINE_SECONDS
+
+    // Use provided nonce or read from contract
+    const nonce = params.permitNonce ?? (await this.getNonce(params.token))
 
     const signature = await getPermitSignature({
       owner: this.account.address,
