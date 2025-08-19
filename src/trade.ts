@@ -325,29 +325,13 @@ export class Trade {
   ): Promise<string> {
     const deadline = params.deadline ?? Math.floor(Date.now() / 1000) + DEFAULT_DEADLINE_SECONDS
 
-    // Generate permit signature using Token class
-    let signature: { v: number; r: string; s: string; nonce: bigint }
-
-    if (params.permitNonce !== undefined) {
-      // Use provided nonce - delegate to Token's internal method
-      signature = await (this.tokenManager as any)['_generatePermitSignature'](
-        this.account.address,
-        router,
-        params.amountIn,
-        params.permitNonce,
-        BigInt(deadline),
-        params.token
-      )
-      signature.nonce = params.permitNonce
-    } else {
-      // Use Token's convenience method that reads nonce automatically
-      signature = await this.tokenManager.generatePermitSignature(
-        params.token,
-        router,
-        params.amountIn,
-        BigInt(deadline)
-      )
-    }
+    // Generate permit signature using Token class (automatically reads nonce)
+    const signature = await this.tokenManager.generatePermitSignature(
+      params.token,
+      router,
+      params.amountIn,
+      BigInt(deadline)
+    )
 
     const sellPermitParams = {
       amountIn: params.amountIn,

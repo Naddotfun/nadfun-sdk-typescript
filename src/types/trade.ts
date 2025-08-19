@@ -46,8 +46,6 @@ export interface SellParams {
 export interface SellPermitParams extends SellParams {
   /** Amount to approve for spending via permit */
   amountAllowance: bigint
-  /** Permit nonce (optional: if not provided, will be read from contract) */
-  permitNonce?: bigint
 }
 
 /**
