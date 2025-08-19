@@ -1,0 +1,65 @@
+{
+  "name": "@nadfun/sdk",
+  "version": "0.1.0",
+  "description": "TypeScript SDK for Nad.fun contracts",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "jest",
+    "lint": "eslint src --ext .ts",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "example:buy": "tsx examples/trade/buy.ts",
+    "example:sell": "tsx examples/trade/sell.ts",
+    "example:sell-permit": "tsx examples/trade/sell_permit.ts",
+    "example:basic-ops": "tsx examples/token/basic_operations.ts",
+    "example:curve-stream": "tsx examples/stream/curve_stream.ts",
+    "example:dex-stream": "tsx examples/stream/dex_stream.ts",
+    "example:gas-estimator": "tsx examples/utils/gas_estimator.ts"
+  },
+  "keywords": [
+    "blockchain",
+    "ethereum",
+    "defi",
+    "trading",
+    "bonding-curve",
+    "nadfun"
+  ],
+  "author": "Nadfun",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/naddotfun/nadfun-sdk-typescript"
+  },
+  "dependencies": {
+    "viem": "^2.34.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@typescript-eslint/eslint-plugin": "^8.39.1",
+    "@typescript-eslint/parser": "^8.39.1",
+    "dotenv": "^16.3.1",
+    "eslint": "^8.55.0",
+    "jest": "^29.7.0",
+    "prettier": "^3.1.0",
+    "tsup": "^8.0.1",
+    "tsx": "^4.6.0",
+    "typescript": "^5.3.0"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
