@@ -390,41 +390,16 @@ bun run example:dex-stream -- --token 0xTokenAddress
 
 ## Core Types
 
-### Event Types
-
-```typescript
-// Bonding Curve Events
-interface CurveEvent {
-  token: string
-  eventType: 'Create' | 'Buy' | 'Sell' | 'Sync' | 'Lock' | 'Listed'
-  blockNumber: bigint
-  transactionHash: string
-  amount?: bigint
-}
-
-// DEX Swap Events
-interface SwapEvent {
-  poolAddress: string
-  amount0: bigint
-  amount1: bigint
-  sender: string
-  recipient: string
-  liquidity: bigint
-  tick: bigint
-  sqrtPriceX96: bigint
-}
-```
-
 ### Trading Types
 
 ```typescript
 // Buy/Sell Parameters
 interface BuyParams {
-  token: Address
-  to: Address
-  amountIn: bigint
-  amountOutMin: bigint
-  deadline?: number
+  token: Address // Token contract address
+  to: Address // Recipient address
+  amountIn: bigint // Amount to spend (in wei)
+  amountOutMin: bigint // Minimum tokens to receive (slippage protection)
+  deadline?: number // Transaction deadline (unix timestamp)
 }
 
 interface SellParams {
@@ -437,13 +412,13 @@ interface SellParams {
 
 // Permit Parameters (EIP-2612)
 interface SellPermitParams extends SellParams {
-  amountAllowance: bigint
+  amountAllowance: bigint // Amount to approve via permit
 }
 
 // Quote Result
 interface QuoteResult {
-  router: Address
-  amount: bigint
+  router: Address // Router contract to use
+  amount: bigint // Calculated amount
 }
 ```
 
@@ -455,9 +430,53 @@ interface TokenMetadata {
   symbol: string
   decimals: number
   totalSupply: bigint
-  address: string
+  address: Address // Updated: now uses proper Address type
 }
 
+// Token health and validation
+interface TokenHealth {
+  isContract: boolean
+  hasBasicFunctions: boolean
+  hasPermit: boolean // EIP-2612 permit support
+  metadata: TokenMetadata | null
+  permitSupport: {
+    domainSeparator?: string
+    currentNonce?: bigint
+  }
+}
+```
+
+### Event Types
+
+```typescript
+// Bonding Curve Events (simplified - see full definitions in types)
+interface BuyEvent {
+  type: 'Buy'
+  token: Address // Updated: proper Address type
+  sender: Address // Updated: proper Address type
+  amountIn: bigint
+  amountOut: bigint
+  blockNumber: number
+  transactionHash: string
+}
+
+// DEX Swap Events
+interface SwapEvent {
+  type: 'Swap'
+  pool: Address // Updated: proper Address type
+  sender: Address // Updated: proper Address type
+  recipient: Address // Updated: proper Address type
+  amount0: bigint
+  amount1: bigint
+  liquidity: bigint
+  tick: number
+  sqrtPriceX96: bigint
+}
+```
+
+### Curve Types
+
+```typescript
 interface CurveData {
   reserveMON: bigint
   reserveToken: bigint
