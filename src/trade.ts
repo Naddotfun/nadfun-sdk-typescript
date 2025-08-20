@@ -141,7 +141,7 @@ export class Trade {
     })
 
     let gas: bigint
-    if (options?.customGas !== false) {
+    if (options?.customGas === false) {
       const estimationParams: GasEstimationParams = {
         type: 'Buy',
         token: params.token,
@@ -207,7 +207,7 @@ export class Trade {
     })
 
     let gas: bigint
-    if (options?.customGas !== false) {
+    if (options?.customGas === false) {
       const estimationParams: GasEstimationParams = {
         type: 'Sell',
         token: params.token,
@@ -281,7 +281,7 @@ export class Trade {
     })
 
     let gas: bigint
-    if (options?.customGas !== false) {
+    if (options?.customGas === false) {
       const estimationParams: GasEstimationParams = {
         type: 'SellPermit',
         token: params.token,

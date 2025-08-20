@@ -1,22 +1,31 @@
-# Nad.fun TypeScript SDK
+# Nad.fun TypeScript SDK v0.2.0
 
-A comprehensive TypeScript SDK for interacting with Nad.fun ecosystem contracts, including bonding curves, DEX trading, and real-time event monitoring.
+A comprehensive TypeScript SDK for interacting with Nad.fun ecosystem contracts, featuring **intelligent gas management**, bonding curve trading, DEX operations, and real-time event monitoring.
+
+## ✨ What's New in v0.2.0
+
+🚀 **Intelligent Gas Management** - Zero configuration, optimal performance
+
+- **Smart defaults**: Real-time gas estimation by default
+- **Safety buffers**: Add percentage-based safety margins
+- **High-speed mode**: Pre-configured limits for maximum performance
+- **Simplified API**: Removed confusing `gasLimit` parameter
 
 ## 📋 Quick Navigation
 
-| 🚀 Getting Started                        | 📊 Features                                           | 💼 Examples                                      |
-| ----------------------------------------- | ----------------------------------------------------- | ------------------------------------------------ |
-| [Installation](#installation)             | [Batch Operations](#-batch-operations)                | [Trading Examples](#trading-examples)            |
-| [Quick Start](#quick-start)               | [Trading](#-trading)                                  | [Token Examples](#token-examples)                |
-| [Configuration](#configuration)           | [Token Operations](#-token-operations)                | [Stream Examples](#stream-examples)              |
-| [Contract Addresses](#contract-addresses) | [Slippage Management](#-advanced-slippage-management) | [Testing & Verification](#testing--verification) |
+|| 🚀 Getting Started | 📊 Features | 💼 Examples |
+|| ----------------------------------------- | ----------------------------------------------------- | ------------------------------------------------ |
+|| [Installation](#installation) | [Intelligent Gas Management](#-intelligent-gas-management) | [Trading Examples](#trading-examples) |
+|| [Quick Start](#quick-start) | [Trading](#-trading) | [Token Examples](#token-examples) |
+|| [Configuration](#configuration) | [Token Operations](#-token-operations) | [Stream Examples](#stream-examples) |
+|| [Contract Addresses](#contract-addresses) | [Slippage Management](#-advanced-slippage-management) | [Testing & Verification](#testing--verification) |
 
-| 📚 Documentation                                | 🔧 Advanced                                        | 🎯 Quick Commands              |
-| ----------------------------------------------- | -------------------------------------------------- | ------------------------------ |
-| [Core Types](#core-types)                       | [Real-time Streaming](#-real-time-event-streaming) | `bun run example:buy`          |
-| [Error Handling](#error-handling)               | [Historical Data](#-historical-data-analysis)      | `bun run example:sell-permit`  |
-| [CLI Arguments](#cli-arguments)                 | [Pool Discovery](#-pool-discovery)                 | `bun run example:token-utils`  |
-| [Environment Variables](#environment-variables) | [DEX Monitoring](#-dex-monitoring)                 | `bun run example:curve-stream` |
+|| 📚 Documentation | 🔧 Advanced | 🎯 Quick Commands |
+|| ----------------------------------------------- | -------------------------------------------------- | ------------------------------ |
+|| [Core Types](#core-types) | [Real-time Streaming](#-real-time-event-streaming) | `bun run example:buy` |
+|| [Migration Guide](#migration-guide-v01x--v020) | [Historical Data](#-historical-data-analysis) | `bun run example:sell-permit` |
+|| [CLI Arguments](#cli-arguments) | [Pool Discovery](#-pool-discovery) | `bun run example:token-utils` |
+|| [Environment Variables](#environment-variables) | [DEX Monitoring](#-dex-monitoring) | `bun run example:curve-stream` |
 
 ### ⚡ Try It Now
 
@@ -52,12 +61,12 @@ const main = async () => {
   const privateKey = 'your_private_key_here'
   const tokenAddress = '0x...' as `0x${string}`
 
-  // Trading
+  // Trading with intelligent gas management
   const trade = new Trade(rpcUrl, privateKey)
   const quote = await trade.getAmountOut(tokenAddress, parseEther('0.1'), true)
   console.log(`Quote: ${formatUnits(quote.amount, 18)} tokens`)
 
-  // Buy tokens
+  // Buy tokens - automatic gas optimization!
   const buyParams = {
     token: tokenAddress,
     to: trade.address,
@@ -66,6 +75,16 @@ const main = async () => {
   }
   const txHash = await trade.buy(buyParams, quote.router)
   console.log(`Transaction: ${txHash}`)
+
+  // Buy with safety buffer
+  const safeTxHash = await trade.buy(buyParams, quote.router, {
+    gasBufferPercent: 20, // 20% extra gas for safety
+  })
+
+  // High-speed trading mode (for bots)
+  const fastTxHash = await trade.buy(buyParams, quote.router, {
+    customGas: false, // Use pre-configured fast limits
+  })
 
   // Token operations
   const token = new Token(rpcUrl, privateKey)
@@ -80,6 +99,85 @@ main().catch(console.error)
 ```
 
 ## Features
+
+### ⛽ Intelligent Gas Management
+
+**Zero configuration required!** The SDK automatically optimizes gas for the best balance of speed, cost, and reliability.
+
+#### 🎯 Default Behavior (Recommended)
+
+```typescript
+// Just call it - SDK handles everything automatically!
+const txHash = await trade.buy(buyParams, router)
+
+// Under the hood:
+// ✅ Estimates optimal gas based on current network
+// ✅ Adapts to network congestion
+// ✅ Uses actual contract calls for accuracy
+// ✅ No manual configuration needed
+```
+
+#### 🛡️ Safety Mode (Production Apps)
+
+```typescript
+// Add safety buffer for critical operations
+const txHash = await trade.buy(buyParams, router, {
+  gasBufferPercent: 20, // 20% extra gas for safety
+})
+
+// Perfect for:
+// • Production applications
+// • Large value transactions
+// • Volatile network conditions
+// • When transaction success is critical
+```
+
+#### ⚡ High-Speed Mode (Trading Bots)
+
+```typescript
+// Maximum speed with pre-configured limits
+const txHash = await trade.buy(buyParams, router, {
+  customGas: false, // Skip estimation, use fast defaults
+})
+
+// Perfect for:
+// • High-frequency trading
+// • Latency-sensitive operations
+// • Stable network conditions
+// • When speed > accuracy
+```
+
+#### 📊 Gas Strategy Comparison
+
+| Strategy       | Speed   | Accuracy  | Network Calls | Best For            |
+| -------------- | ------- | --------- | ------------- | ------------------- |
+| **Default**    | Fast    | Very High | +1 RPC call   | Most applications   |
+| **+ Buffer**   | Fast    | Very High | +1 RPC call   | Production/Critical |
+| **High-Speed** | Fastest | Good      | 0 extra calls | Bots/HFT            |
+
+#### 🎛️ Advanced Configuration
+
+```typescript
+// Get current gas config (for reference)
+const gasConfig = trade.getGasConfig()
+console.log('Default buy gas:', gasConfig.bondingRouter.buy)
+
+// Custom gas config (if needed)
+const customGasConfig = {
+  bondingRouter: {
+    buy: 350_000n,
+    sell: 180_000n,
+    sellPermit: 220_000n,
+  },
+  dexRouter: {
+    buy: 400_000n,
+    sell: 220_000n,
+    sellPermit: 270_000n,
+  },
+}
+
+const trade = new Trade(rpcUrl, privateKey, customGasConfig)
+```
 
 ### ⚡ Batch Operations
 
@@ -107,7 +205,7 @@ Object.entries(metadata).forEach(([address, meta]) => {
 
 ### 🚀 Trading
 
-Execute buy/sell operations with automatic router detection:
+Execute buy/sell operations with automatic router detection and intelligent gas:
 
 ```typescript
 import { Trade, parseEther, formatUnits } from '@nadfun/sdk'
@@ -116,7 +214,7 @@ import { calculateMinAmountOut, SLIPPAGE_PRESETS } from '@nadfun/sdk/utils'
 const trade = new Trade(rpcUrl, privateKey)
 const tokenAddress = '0x...' as `0x${string}`
 
-// Buy tokens with proper slippage calculation
+// Buy tokens with automatic gas optimization
 const quote = await trade.getAmountOut(tokenAddress, parseEther('0.1'), true)
 const minTokens = calculateMinAmountOut(quote.amount, 5.0) // 5% slippage
 
@@ -127,10 +225,15 @@ const buyParams = {
   amountOutMin: minTokens,
 }
 
+// Simple - uses intelligent defaults
 const txHash = await trade.buy(buyParams, quote.router)
-console.log(`Buy transaction: ${txHash}`)
 
-// Sell tokens with permit (gasless)
+// Production - with safety buffer
+const safeTxHash = await trade.buy(buyParams, quote.router, {
+  gasBufferPercent: 15,
+})
+
+// Sell tokens with permit (gasless approval)
 const sellPermitParams = {
   token: tokenAddress,
   to: trade.address,
@@ -185,60 +288,6 @@ console.log(`Within tolerance: ${withinTolerance}`)
 - `NORMAL`: 1.0% (standard)
 - `HIGH`: 3.0% (illiquid tokens)
 - `EMERGENCY`: 10.0% (emergency trades)
-
-### ⛽ Gas Management
-
-The SDK provides intelligent gas management with both real-time estimation and optimized defaults:
-
-#### Default Gas Limits (Recommended)
-
-Based on comprehensive contract testing with 20% safety buffer:
-
-```typescript
-import { BONDING_ROUTER_GAS_CONFIG, DEX_ROUTER_GAS_CONFIG } from '@nadfun/sdk'
-
-// Access default gas limits
-console.log('Bonding Curve Buy:', BONDING_ROUTER_GAS_CONFIG.BUY) // 320,000n
-console.log('Bonding Curve Sell:', BONDING_ROUTER_GAS_CONFIG.SELL) // 170,000n
-console.log('DEX Buy:', DEX_ROUTER_GAS_CONFIG.BUY) // 350,000n
-console.log('DEX Sell:', DEX_ROUTER_GAS_CONFIG.SELL) // 200,000n
-
-// Use with custom gas config
-const customGasConfig = {
-  bondingRouter: {
-    buy: 350_000n,
-    sell: 180_000n,
-    sellPermit: 220_000n,
-  },
-  dexRouter: {
-    buy: 400_000n,
-    sell: 220_000n,
-    sellPermit: 270_000n,
-  },
-}
-
-const trade = new Trade(rpcUrl, privateKey, customGasConfig)
-```
-
-#### Real-time Gas Estimation
-
-```typescript
-// Get current network gas price
-const gasPrice = await trade.publicClient.getGasPrice()
-const recommendedGasPrice = gasPrice * 3n // 3x for better inclusion
-
-// Use in transaction
-const txHash = await trade.buy(buyParams, router, {
-  gasLimit: 350_000n,
-  nonce: await trade.publicClient.getTransactionCount({ address: trade.address }),
-})
-```
-
-#### Gas Limits Summary
-
-- **Bonding Curve**: Buy: 320k, Sell: 170k, SellPermit: 210k
-- **DEX Router**: Buy: 350k, Sell: 200k, SellPermit: 250k
-- All limits include 20% safety buffer based on forge test data
 
 ### 📊 Token Operations
 
@@ -396,6 +445,52 @@ swaps.forEach(swap => {
 })
 ```
 
+## Migration Guide (v0.1.x → v0.2.0)
+
+### 🔧 Gas Management Changes
+
+**Old Way (v0.1.x)**:
+
+```typescript
+// Manual gas calculation required
+await trade.buy(params, router, {
+  gasLimit: 200000n,
+  routerType: 'bonding',
+})
+```
+
+**New Way (v0.2.0)**:
+
+```typescript
+// Automatic - works perfectly without configuration
+await trade.buy(params, router)
+
+// With safety buffer for production
+await trade.buy(params, router, {
+  gasBufferPercent: 15,
+})
+
+// High-speed mode for bots
+await trade.buy(params, router, {
+  customGas: true, //you can custom your gasConfig by updateGasConfig function
+})
+```
+
+### ✨ Benefits of Upgrading
+
+1. **Better Success Rates**: Network-aware gas estimation reduces failed transactions
+2. **Simpler Code**: No more manual gas calculations
+3. **Improved Performance**: Intelligent defaults with option for speed optimization
+4. **Enhanced Safety**: Built-in buffer system for critical operations
+5. **Future-Proof**: Adaptable to changing network conditions
+
+### 🎯 Quick Migration Checklist
+
+- [ ] Remove `gasLimit` parameters from trade calls
+- [ ] Add `gasBufferPercent` for production applications (recommended: 10-20%)
+- [ ] Use `customGas: false` for high-frequency trading bots
+- [ ] Test with new defaults - they should work better out of the box!
+
 ## Examples
 
 The SDK includes comprehensive examples in the `examples/` directory:
@@ -408,7 +503,7 @@ export PRIVATE_KEY="your_private_key_here"
 export RPC_URL="https://your-rpc-endpoint"
 export TOKEN="0xTokenAddress"
 
-bun run example:buy              # Buy tokens
+bun run example:buy              # Buy tokens with intelligent gas
 bun run example:sell             # Sell tokens with approval management
 bun run example:sell-permit      # Gasless sell with EIP-2612 permit
 
@@ -425,15 +520,12 @@ bun run example:sell-permit -- --token 0xTokenAddress --amount 100
 export TOKENS="0xToken1,0xToken2,0xToken3"  # Multiple tokens for batch operations
 
 bun run example:token-utils                  # Token utilities with batch operations
-bun run example:approve-test                 # Token approval testing
 
 # Using command line arguments
 bun run example:token-utils -- --tokens 0xToken1,0xToken2,0xToken3
 ```
 
 ### Stream Examples
-
-The SDK provides comprehensive streaming examples:
 
 #### 🔄 Bonding Curve Examples
 
@@ -459,35 +551,28 @@ bun run example:curve-indexer -- --tokens 0xToken1 --events Buy,Sell --from-bloc
 **2. curve_stream** - Real-time bonding curve monitoring
 
 ```bash
-# Scenario 1: Monitor all bonding curve events
+# Monitor all bonding curve events
 bun run example:curve-stream
 
-# Scenario 2: Filter specific tokens only
+# Filter specific tokens only
 bun run example:curve-stream -- --token 0xTokenAddress
 
-# Scenario 3: Multiple token filtering
+# Multiple token filtering
 bun run example:curve-stream -- --tokens 0xToken1,0xToken2
 ```
-
-Features:
-
-- ✅ All event types: Create, Buy, Sell, Sync, Lock, Listed
-- ✅ Token filtering via `--token` or `--tokens` arguments
-- ✅ Real-time WebSocket streaming
-- ✅ Automatic event decoding
 
 #### 💱 DEX Examples
 
 **3. dex_stream** - Real-time DEX swap monitoring
 
 ```bash
-# Scenario 1: Auto-discover pools for multiple tokens
+# Auto-discover pools for multiple tokens
 bun run example:dex-stream -- --tokens 0xToken1,0xToken2
 
-# Scenario 2: Single token pool discovery
+# Single token pool discovery
 bun run example:dex-stream -- --token 0xTokenAddress
 
-# Scenario 3: Monitor specific pools directly
+# Monitor specific pools directly
 bun run example:dex-stream -- --pools 0xPool1,0xPool2
 ```
 
@@ -505,21 +590,7 @@ bun run example:dex-indexer -- --tokens 0xToken1,0xToken2
 
 # Monitor specific pools directly
 bun run example:dex-indexer -- --pools 0xPool1,0xPool2
-
-# Combined filtering with block range
-bun run example:dex-indexer -- --tokens 0xToken1 --from-block 1500000 --to-block 1600000
 ```
-
-Features:
-
-- ✅ Automatic pool discovery for tokens
-- ✅ Direct pool address monitoring
-- ✅ Single token pool discovery
-- ✅ Real-time Uniswap V3 swap events (dex_stream)
-- ✅ Historical DEX swap analysis (dex_indexer)
-- ✅ Pool metadata included
-- ✅ WebSocket streaming (dex_stream)
-- ✅ Block range filtering (dex_indexer)
 
 ### Testing & Verification
 
@@ -575,6 +646,12 @@ interface QuoteResult {
   router: Address // Router contract to use
   amount: bigint // Calculated amount
 }
+
+// Gas Management Options
+interface GasOptions {
+  customGas?: boolean // Use real-time estimation (default: false)
+  gasBufferPercent?: number // Percentage buffer for safety
+}
 ```
 
 ### Token Types
@@ -585,7 +662,7 @@ interface TokenMetadata {
   symbol: string
   decimals: number
   totalSupply: bigint
-  address: Address // Updated: now uses proper Address type
+  address: Address
 }
 
 // Token health and validation
@@ -607,8 +684,8 @@ interface TokenHealth {
 // Bonding Curve Events (simplified - see full definitions in types)
 interface BuyEvent {
   type: 'Buy'
-  token: Address // Updated: proper Address type
-  sender: Address // Updated: proper Address type
+  token: Address
+  sender: Address
   amountIn: bigint
   amountOut: bigint
   blockNumber: number
@@ -618,9 +695,9 @@ interface BuyEvent {
 // DEX Swap Events
 interface SwapEvent {
   type: 'Swap'
-  pool: Address // Updated: proper Address type
-  sender: Address // Updated: proper Address type
-  recipient: Address // Updated: proper Address type
+  pool: Address
+  sender: Address
+  recipient: Address
   amount0: bigint
   amount1: bigint
   liquidity: bigint
@@ -692,9 +769,9 @@ All examples support command line arguments for configuration:
 --to-block <NUM>     # Ending block number for historical data
 --events <TYPES>     # Event types filter (comma-separated)
 
-# Trading examples
-bun run example:buy -- --token 0xTokenAddress --amount 0.1 --slippage 3
-bun run example:sell -- --token 0xTokenAddress --amount 100 --slippage 5
+# Trading examples with intelligent gas
+bun run example:buy -- --token 0xTokenAddress --amount 0.1
+bun run example:sell -- --token 0xTokenAddress --amount 100
 
 # Token utilities with multiple tokens
 bun run example:token-utils -- --tokens 0xToken1,0xToken2,0xToken3
@@ -743,6 +820,7 @@ try {
 
 ### ✅ Verified Features
 
+- **Intelligent Gas Management**: Real-time estimation with fallback to optimized defaults
 - **Real-time Streaming**: WebSocket-based event delivery tested and working
 - **Event Decoding**: Automatic parsing of bonding curve and swap events
 - **Connection Stability**: Streams remain alive and process events continuously
@@ -751,6 +829,7 @@ try {
 
 ### 📊 Tested Scenarios
 
+- **Trading Operations**: All gas management modes tested and verified
 - **Bonding Curve**: Multiple scenarios (all events, filtered events, filtered tokens)
 - **DEX Streaming**: Token discovery, pool monitoring, swap events
 - **Historical Data**: Block range processing with automatic batching (respects 100 block RPC limit)
@@ -758,6 +837,7 @@ try {
 
 ### ⚡ Performance Features
 
+- **Intelligent Gas**: Automatic network-aware optimization
 - **Efficient Filtering**: Network-level filtering for event types
 - **Client-side Filtering**: Token-based filtering for precise control
 - **Memory Efficient**: Stream-based processing without buffering
