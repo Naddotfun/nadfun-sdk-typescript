@@ -10,6 +10,8 @@ export type {
   SellPermitParams,
   QuoteResult,
   GasConfig,
+  GasEstimationParams,
+  RouterConfig,
   // Token types
   TokenMetadata,
   TokenHealth,
@@ -34,7 +36,7 @@ export type {
 } from './types'
 
 // Export enums
-export { CurveEventType, DexEventType, StreamStatus } from './types'
+export { CurveEventType, DexEventType, StreamStatus, RouterType } from './types'
 
 // Utils
 export {
@@ -44,6 +46,15 @@ export {
   parseUnits,
   formatUnits,
 } from './utils/slippage'
+
+// Gas estimation utils
+export {
+  estimateGas,
+  estimateBuyGas,
+  estimateSellGas,
+  estimateSellPermitGas,
+  getRouterConfig,
+} from './utils/gas'
 
 // Gas configuration
 export { BONDING_ROUTER_GAS_CONFIG, DEX_ROUTER_GAS_CONFIG } from './utils/gasConfig'

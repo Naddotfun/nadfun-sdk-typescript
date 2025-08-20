@@ -7,7 +7,16 @@
  */
 
 // Trade-related types
-export type { BuyParams, SellParams, SellPermitParams, QuoteResult, GasConfig } from './trade'
+export type {
+  BuyParams,
+  SellParams,
+  SellPermitParams,
+  QuoteResult,
+  GasConfig,
+  GasEstimationParams,
+  RouterConfig,
+} from './trade'
+export { RouterType } from './trade'
 
 // Token-related types
 export type { TokenMetadata, TokenHealth, PermitSignature } from './token'

@@ -6,6 +6,22 @@ import { Address } from 'viem'
  */
 
 /**
+ * Router types for gas estimation and contract interactions
+ */
+export enum RouterType {
+  BondingCurve = 'BondingCurve',
+  Dex = 'Dex',
+}
+
+/**
+ * Router configuration with address and type
+ */
+export interface RouterConfig {
+  address: Address
+  type: RouterType
+}
+
+/**
  * Parameters for buying tokens on bonding curves
  * Used by: Trade.buy(), examples/trade/buy.ts
  */
@@ -83,3 +99,35 @@ export interface GasConfig {
     sellPermit?: bigint
   }
 }
+
+/**
+ * Gas estimation parameters for different trading operations
+ */
+export type GasEstimationParams =
+  | {
+      type: 'Buy'
+      token: Address
+      amountIn: bigint
+      amountOutMin: bigint
+      to: Address
+      deadline: bigint
+    }
+  | {
+      type: 'Sell'
+      token: Address
+      amountIn: bigint
+      amountOutMin: bigint
+      to: Address
+      deadline: bigint
+    }
+  | {
+      type: 'SellPermit'
+      token: Address
+      amountIn: bigint
+      amountOutMin: bigint
+      to: Address
+      deadline: bigint
+      v: number
+      r: `0x${string}`
+      s: `0x${string}`
+    }
