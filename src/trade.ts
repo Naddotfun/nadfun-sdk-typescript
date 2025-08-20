@@ -7,6 +7,7 @@ import type {
   CurveData,
   SellPermitParams,
   GasConfig,
+  GasEstimationParams,
 } from '@/types'
 
 import { createPublicClient, createWalletClient, http, getContract, encodeFunctionData } from 'viem'
@@ -14,10 +15,9 @@ import { privateKeyToAccount } from 'viem/accounts'
 import { CONTRACTS, CURRENT_CHAIN, DEFAULT_DEADLINE_SECONDS } from '@/constants'
 import { BONDING_ROUTER_GAS_CONFIG, DEX_ROUTER_GAS_CONFIG } from '@/utils/gasConfig'
 import { curveAbi, lensAbi, routerAbi } from '@/abis'
-// Permit functionality now handled by Token class
 import { Token } from './token'
 
-// GasConfig moved to src/types/trade.ts
+import { estimateGas as standaloneEstimateGas } from '@/utils/gas'
 
 export class Trade {
   public lens: GetContractReturnType<typeof lensAbi, PublicClient, Address>
@@ -109,13 +109,20 @@ export class Trade {
     }
   }
 
+  ///////////////////////////////////////////////////////////
+  //////////////////TRADE FUNCTIONS///////////////////////////
+  ///////////////////////////////////////////////////////////
+
   async buy(
     params: BuyParams,
     router: Address,
     options?: {
       routerType?: 'bonding' | 'dex'
-      gasLimit?: bigint
       nonce?: number
+      /** Use custom gas estimation instead of GasConfig defaults (default: true) */
+      customGas?: boolean
+      /** Buffer percentage for gas estimation (e.g., 20 for 20% buffer) */
+      gasBufferPercent?: number
     }
   ): Promise<string> {
     const deadline = params.deadline ?? Math.floor(Date.now() / 1000) + DEFAULT_DEADLINE_SECONDS
@@ -133,11 +140,25 @@ export class Trade {
       args: [buyParams],
     })
 
-    let gasLimit = options?.gasLimit
-    if (!gasLimit) {
+    let gas: bigint
+    if (options?.customGas !== false) {
+      const estimationParams: GasEstimationParams = {
+        type: 'Buy',
+        token: params.token,
+        amountIn: params.amountIn,
+        amountOutMin: params.amountOutMin,
+        to: params.to,
+        deadline: BigInt(deadline),
+      }
+
+      gas = await this.estimateGas(router, estimationParams, {
+        bufferPercent: options?.gasBufferPercent,
+      })
+    } else {
       const routerType = options?.routerType ?? 'bonding'
-      gasLimit =
+      gas = (
         routerType === 'dex' ? this.gasConfig.dexRouter.buy : this.gasConfig.bondingRouter.buy
+      ) as bigint
     }
 
     const tx = await this.walletClient.sendTransaction({
@@ -145,7 +166,7 @@ export class Trade {
       to: router,
       data: callData,
       value: params.amountIn,
-      gas: gasLimit,
+      gas: gas,
       nonce: options?.nonce,
       chain: CURRENT_CHAIN,
     })
@@ -162,8 +183,11 @@ export class Trade {
     router: Address,
     options?: {
       routerType?: 'bonding' | 'dex'
-      gasLimit?: bigint
       nonce?: number
+      /** Use custom gas estimation instead of GasConfig defaults (default: true) */
+      customGas?: boolean
+      /** Buffer percentage for gas estimation (e.g., 20 for 20% buffer) */
+      gasBufferPercent?: number
     }
   ): Promise<string> {
     const deadline = params.deadline ?? Math.floor(Date.now() / 1000) + DEFAULT_DEADLINE_SECONDS
@@ -182,24 +206,165 @@ export class Trade {
       args: [sellParams],
     })
 
-    let gasLimit = options?.gasLimit
-    if (!gasLimit) {
+    let gas: bigint
+    if (options?.customGas !== false) {
+      const estimationParams: GasEstimationParams = {
+        type: 'Sell',
+        token: params.token,
+        amountIn: params.amountIn,
+        amountOutMin: params.amountOutMin,
+        to: params.to,
+        deadline: BigInt(deadline),
+      }
+
+      gas = await this.estimateGas(router, estimationParams, {
+        bufferPercent: options?.gasBufferPercent,
+      })
+    } else {
       const routerType = options?.routerType ?? 'bonding'
-      gasLimit =
+      gas = (
         routerType === 'dex' ? this.gasConfig.dexRouter.sell : this.gasConfig.bondingRouter.sell
+      ) as bigint
     }
 
     const tx = await this.walletClient.sendTransaction({
       account: this.account,
       to: router,
       data: sellData,
-      gas: gasLimit,
+      gas: gas,
       nonce: options?.nonce,
       chain: CURRENT_CHAIN,
     })
 
     return tx
   }
+
+  /**
+   * Sell with permit - optimized for speed
+   * If permitNonce is provided, skips nonce reading (faster for bots)
+   */
+  async sellPermit(
+    params: SellPermitParams,
+    router: Address,
+    options?: {
+      routerType?: 'bonding' | 'dex'
+      nonce?: number
+      customGas?: boolean
+      gasBufferPercent?: number
+    }
+  ): Promise<string> {
+    const deadline = params.deadline ?? Math.floor(Date.now() / 1000) + DEFAULT_DEADLINE_SECONDS
+
+    const signature = await this.tokenManager.generatePermitSignature(
+      params.token,
+      router,
+      params.amountIn,
+      BigInt(deadline)
+    )
+
+    const sellPermitParams = {
+      amountIn: params.amountIn,
+      amountOutMin: params.amountOutMin,
+      amountAllowance: params.amountAllowance,
+      token: params.token,
+      to: params.to,
+      deadline: deadline,
+      v: signature.v,
+      r: signature.r,
+      s: signature.s,
+    }
+
+    const sellPermitData = encodeFunctionData({
+      abi: routerAbi,
+      functionName: 'sellPermit',
+      args: [sellPermitParams],
+    })
+
+    let gas: bigint
+    if (options?.customGas !== false) {
+      const estimationParams: GasEstimationParams = {
+        type: 'SellPermit',
+        token: params.token,
+        amountIn: params.amountIn,
+        amountOutMin: params.amountOutMin,
+        to: params.to,
+        deadline: BigInt(deadline),
+        v: signature.v,
+        r: signature.r as `0x${string}`,
+        s: signature.s as `0x${string}`,
+      }
+
+      gas = await this.estimateGas(router, estimationParams, {
+        bufferPercent: options?.gasBufferPercent,
+      })
+    } else {
+      const routerType = options?.routerType ?? 'bonding'
+      gas = (
+        routerType === 'dex'
+          ? this.gasConfig.dexRouter.sellPermit
+          : this.gasConfig.bondingRouter.sellPermit
+      ) as bigint
+    }
+
+    const tx = await this.walletClient.sendTransaction({
+      account: this.account,
+      to: router,
+      data: sellPermitData,
+      gas: gas,
+      nonce: options?.nonce,
+      chain: CURRENT_CHAIN,
+    })
+
+    return tx
+  }
+
+  /**
+   * Convenience function: sell with automatic approval if needed
+   * Use this if you want the old behavior with automatic approval
+   * Returns { approveTx?: string, sellTx: string }
+   */
+  async sellWithApprove(
+    params: SellParams,
+    router: Address,
+    options?: {
+      routerType?: 'bonding' | 'dex'
+      approveGasLimit?: bigint
+      nonce?: number
+      /** Use custom gas estimation instead of GasConfig defaults (default: true) */
+      customGas?: boolean
+      /** Buffer percentage for gas estimation (e.g., 20 for 20% buffer) */
+      gasBufferPercent?: number
+    }
+  ): Promise<{ approveTx?: string; sellTx: string }> {
+    const allowance = await this.getAllowance(params.token, router)
+
+    let approveTx: string | undefined
+
+    if (allowance < params.amountIn) {
+      // Need approval first
+      approveTx = await this.approveToken(params.token, router, params.amountIn)
+
+      // Wait a bit for approval to be mined
+      console.log('⏳ Waiting for approval confirmation...')
+      await this.publicClient.waitForTransactionReceipt({
+        hash: approveTx as `0x${string}`,
+      })
+    }
+
+    // Execute sell
+    const sellTx = await this.sell(params, router, {
+      routerType: options?.routerType,
+      nonce: approveTx ? undefined : options?.nonce, // Don't reuse nonce if we used it for approve
+      customGas: options?.customGas,
+      gasBufferPercent: options?.gasBufferPercent,
+    })
+
+    return { approveTx, sellTx }
+  }
+
+  ///////////////////////////////////////////////////////////
+  //////////////////TOKEN FUNCTIONS///////////////////////////
+  ///////////////////////////////////////////////////////////
 
   /**
    * Check current allowance for a token and spender
@@ -221,60 +386,9 @@ export class Trade {
    * Approve token spending - delegates to Token class with trade-specific optimizations
    * Returns transaction hash
    */
-  async approveToken(
-    token: Address,
-    spender: Address,
-    amount: bigint,
-    options?: {
-      gasLimit?: bigint
-      nonce?: number
-    }
-  ): Promise<string> {
-    // Delegate to Token class but maintain trade-specific gas optimization if needed
-    return await this.tokenManager.approve(token, spender, amount, {
-      gasLimit: options?.gasLimit,
-    })
-  }
-
-  /**
-   * Convenience function: sell with automatic approval if needed
-   * Use this if you want the old behavior with automatic approval
-   * Returns { approveTx?: string, sellTx: string }
-   */
-  async sellWithApprove(
-    params: SellParams,
-    router: Address,
-    options?: {
-      routerType?: 'bonding' | 'dex'
-      gasLimit?: bigint
-      approveGasLimit?: bigint
-      nonce?: number
-    }
-  ): Promise<{ approveTx?: string; sellTx: string }> {
-    const allowance = await this.getAllowance(params.token, router)
-
-    let approveTx: string | undefined
-
-    if (allowance < params.amountIn) {
-      // Need approval first
-      approveTx = await this.approveToken(params.token, router, params.amountIn, {
-        gasLimit: options?.approveGasLimit,
-        nonce: options?.nonce,
-      })
-
-      // Wait a bit for approval to be mined
-      console.log('⏳ Waiting for approval confirmation...')
-      await new Promise(resolve => setTimeout(resolve, 3000))
-    }
-
-    // Execute sell
-    const sellTx = await this.sell(params, router, {
-      routerType: options?.routerType,
-      gasLimit: options?.gasLimit,
-      nonce: approveTx ? undefined : options?.nonce, // Don't reuse nonce if we used it for approve
-    })
-
-    return { approveTx, sellTx }
+  async approveToken(token: Address, spender: Address, amount: bigint): Promise<string> {
+    // Delegate to Token class
+    return await this.tokenManager.approve(token, spender, amount)
   }
 
   /**
@@ -308,68 +422,6 @@ export class Trade {
       functionName: 'nonces',
       args: [this.account.address],
     })) as bigint
-  }
-
-  /**
-   * Sell with permit - optimized for speed
-   * If permitNonce is provided, skips nonce reading (faster for bots)
-   */
-  async sellPermit(
-    params: SellPermitParams,
-    router: Address,
-    options?: {
-      routerType?: 'bonding' | 'dex'
-      gasLimit?: bigint
-      nonce?: number
-    }
-  ): Promise<string> {
-    const deadline = params.deadline ?? Math.floor(Date.now() / 1000) + DEFAULT_DEADLINE_SECONDS
-
-    // Generate permit signature using Token class (automatically reads nonce)
-    const signature = await this.tokenManager.generatePermitSignature(
-      params.token,
-      router,
-      params.amountIn,
-      BigInt(deadline)
-    )
-
-    const sellPermitParams = {
-      amountIn: params.amountIn,
-      amountOutMin: params.amountOutMin,
-      amountAllowance: params.amountAllowance,
-      token: params.token,
-      to: params.to,
-      deadline: deadline,
-      v: signature.v,
-      r: signature.r,
-      s: signature.s,
-    }
-
-    const sellPermitData = encodeFunctionData({
-      abi: routerAbi,
-      functionName: 'sellPermit',
-      args: [sellPermitParams],
-    })
-
-    let gasLimit = options?.gasLimit
-    if (!gasLimit) {
-      const routerType = options?.routerType ?? 'bonding'
-      gasLimit =
-        routerType === 'dex'
-          ? this.gasConfig.dexRouter.sellPermit
-          : this.gasConfig.bondingRouter.sellPermit
-    }
-
-    const tx = await this.walletClient.sendTransaction({
-      account: this.account,
-      to: router,
-      data: sellPermitData,
-      gas: gasLimit,
-      nonce: options?.nonce,
-      chain: CURRENT_CHAIN,
-    })
-
-    return tx
   }
 
   async isListed(token: Address): Promise<boolean> {
@@ -420,5 +472,47 @@ export class Trade {
         ...newConfig.dexRouter,
       }
     }
+  }
+
+  /**
+   * Estimate gas for trading operations using the unified gas estimation system
+   *
+   * This is a convenience method that wraps the standalone estimateGas function
+   * and automatically provides the publicClient and handles the common use case.
+   *
+   * @example
+   * ```typescript
+   * import { Trade, GasEstimationParams } from '@nadfun/sdk'
+   *
+   * const params: GasEstimationParams = {
+   *   type: 'Buy',
+   *   token,
+   *   amountIn: monAmount,
+   *   amountOutMin: minTokens,
+   *   to: wallet,
+   *   deadline,
+   * }
+   *
+   * const estimatedGas = await trade.estimateGas(routerAddress, params)
+   * const gasWithBuffer = (estimatedGas * 120n) / 100n // Add 20% buffer
+   * ```
+   */
+  async estimateGas(
+    routerAddress: Address,
+    params: GasEstimationParams,
+    options?: {
+      /** Add a percentage buffer to the estimated gas (default: 0) */
+      bufferPercent?: number
+    }
+  ): Promise<bigint> {
+    const estimatedGas = await standaloneEstimateGas(this.publicClient, routerAddress, params)
+
+    // Apply buffer if specified
+    if (options?.bufferPercent && options.bufferPercent > 0) {
+      const bufferMultiplier = BigInt(100 + options.bufferPercent)
+      return (estimatedGas * bufferMultiplier) / 100n
+    }
+
+    return estimatedGas
   }
 }
