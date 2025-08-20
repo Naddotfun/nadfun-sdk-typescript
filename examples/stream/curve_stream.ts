@@ -29,7 +29,8 @@ const { values: args } = parseArgs({
 })
 
 const RPC_URL = args['rpc-url'] || process.env.RPC_URL || monadTestnet.rpcUrls.default.http[0]
-const TOKEN_ADDRESS = args.token || process.env.TOKEN
+const TOKEN_ADDRESS =
+  args.token || process.env.TOKEN || '0xce3D002DD6ECc97a628ad04ffA59DA3D91a589B1'
 
 let eventCount = 0
 

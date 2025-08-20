@@ -15,6 +15,7 @@ import { monadTestnet } from 'viem/chains'
 import { Indexer as CurveIndexer } from '../../src/stream/curve/indexer'
 import { CurveEventType, BondingCurveEvent } from '../../src/types'
 import { parseArgs } from 'util'
+import { getBlockNumber } from 'viem/actions'
 
 // Load environment variables
 config()
@@ -24,6 +25,7 @@ const { values: args } = parseArgs({
   args: process.argv.slice(2),
   options: {
     'rpc-url': { type: 'string' },
+    token: { type: 'string' },
     tokens: { type: 'string' },
     'from-block': { type: 'string' },
     'to-block': { type: 'string' },
@@ -34,11 +36,10 @@ const { values: args } = parseArgs({
 
 // Configuration
 const RPC_URL = args['rpc-url'] || process.env.RPC_URL || monadTestnet.rpcUrls.default.http[0]
-const TOKEN_FILTER = args['tokens']?.split(',').map(t => t.trim()) || []
-// Use recent blocks that are more likely to have events
-const currentBlock = 4000000 // Approximate recent block
-const FROM_BLOCK = Number(args['from-block'] || (currentBlock - 1000).toString())
-const TO_BLOCK = Number(args['to-block'] || currentBlock.toString())
+const TOKEN_FILTER = process.env.TOKENS
+  ? process.env.TOKENS.split(',').map(t => t.trim())
+  : args['tokens']?.split(',').map(t => t.trim()) || []
+
 const EVENT_FILTER = args['events']?.split(',').map(e => e.trim() as CurveEventType) || [
   CurveEventType.Buy,
   CurveEventType.Sell,
@@ -51,6 +52,10 @@ async function executeCurveIndexing() {
     // Initialize indexer with just RPC URL - much simpler!
     const indexer = new CurveIndexer(RPC_URL)
 
+    // Use recent blocks that are more likely to have events
+    const currentBlock = await getBlockNumber(indexer.publicClient) // Approximate recent block
+    const FROM_BLOCK = Number(args['from-block'] || (Number(currentBlock) - 100).toString())
+    const TO_BLOCK = Number(args['to-block'] || currentBlock.toString())
     console.log('📋 Indexing Configuration:')
     console.log(`   RPC URL: ${RPC_URL}`)
     console.log(`   Block range: ${FROM_BLOCK} → ${TO_BLOCK}`)
@@ -77,6 +82,8 @@ async function executeCurveIndexing() {
       // Direct fetch for smaller ranges
       events = await indexer.fetchEvents(FROM_BLOCK, TO_BLOCK, EVENT_FILTER, TOKEN_FILTER)
     }
+
+    console.log(events, 'events')
 
     const fetchTime = Date.now() - startTime
 

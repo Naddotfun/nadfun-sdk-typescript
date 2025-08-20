@@ -33,12 +33,12 @@ export interface CurveData {
  * Used by: src/stream/curve/parser.ts, src/stream/curve/stream.ts
  */
 export enum CurveEventType {
-  Create = 'Create',
-  Buy = 'Buy',
-  Sell = 'Sell',
-  Sync = 'Sync',
-  Lock = 'Lock',
-  Listed = 'Listed',
+  Create = 'CurveCreate',
+  Buy = 'CurveBuy',
+  Sell = 'CurveSell',
+  Sync = 'CurveSync',
+  Lock = 'CurveTokenLocked',
+  Listed = 'CurveListed',
 }
 
 /**

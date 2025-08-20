@@ -22,6 +22,7 @@
     "example:token-utils": "tsx examples/token/token_utils.ts",
     "example:curve-indexer": "tsx examples/stream/curve_indexer.ts",
     "example:curve-stream": "tsx examples/stream/curve_stream.ts",
+    "example:dex-indexer": "tsx examples/stream/dex_indexer.ts",
     "example:dex-stream": "tsx examples/stream/dex_stream.ts",
     "example:gas-estimator": "tsx examples/utils/gas_estimator.ts"
   },
