@@ -1,8 +1,7 @@
 import type { PublicClient } from 'viem'
-import { createPublicClient, http, parseEventLogs, getAbiItem } from 'viem'
+import { createPublicClient, http } from 'viem'
 import { CurveEventType, BondingCurveEvent } from '@/types'
 import { CONTRACTS, CURRENT_CHAIN } from '@/constants'
-import { curveAbi } from '@/abis/curve'
 import {
   parseBondingCurveEvent,
   getCurveEventSignatures,
