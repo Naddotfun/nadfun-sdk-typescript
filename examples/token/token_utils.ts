@@ -66,7 +66,6 @@ async function executeTokenUtilsExample() {
     console.log('⚡ Batch Operations:')
     const batchMetadata = await token.batchGetMetadata(TOKENS as `0x${string}`[])
     const batchBalances = await token.batchGetBalances(TOKENS as `0x${string}`[])
-
     console.log('🔍 Token Analysis:')
     Object.entries(batchMetadata).forEach(([address, meta]) => {
       const balance = batchBalances[address]
@@ -82,7 +81,8 @@ async function executeTokenUtilsExample() {
     // Health check for all tokens
     console.log('🏥 Health Check:')
     for (const tokenAddr of TOKENS) {
-      const meta = batchMetadata[tokenAddr]
+      const meta = Object.values(batchMetadata).find(m => m.address === tokenAddr)
+
       if (!meta) continue
 
       const health = await token.getTokenHealth(tokenAddr as `0x${string}`)
@@ -96,7 +96,8 @@ async function executeTokenUtilsExample() {
     // Permit signature for tokens that support it
     console.log('🎫 Permit Support:')
     for (const tokenAddr of TOKENS) {
-      const meta = batchMetadata[tokenAddr]
+      const meta = Object.values(batchMetadata).find(m => m.address === tokenAddr)
+
       if (!meta) continue
 
       const health = await token.getTokenHealth(tokenAddr as `0x${string}`)
@@ -133,7 +134,7 @@ async function executeTokenUtilsExample() {
 
     console.log('   📊 All token allowances:')
     for (const tokenAddr of TOKENS) {
-      const meta = batchMetadata[tokenAddr]
+      const meta = Object.values(batchMetadata).find(m => m.address === tokenAddr)
       if (!meta) continue
 
       const allowances = await token.batchGetAllowances(tokenAddr as `0x${string}`, routers)
@@ -150,7 +151,7 @@ async function executeTokenUtilsExample() {
     // Token approval example for first token only
     console.log('✅ Approval Management:')
     const firstToken = TOKENS[0] as `0x${string}`
-    const firstMeta = batchMetadata[firstToken]
+    const firstMeta = Object.values(batchMetadata).find(m => m.address === firstToken)
 
     if (firstMeta) {
       console.log(`   📝 Testing approval for ${firstMeta.symbol}:`)
