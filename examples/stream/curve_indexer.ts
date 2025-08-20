@@ -53,9 +53,17 @@ async function executeCurveIndexing() {
     const indexer = new CurveIndexer(RPC_URL)
 
     // Use recent blocks that are more likely to have events
-    const currentBlock = await getBlockNumber(indexer.publicClient) // Approximate recent block
-    const FROM_BLOCK = Number(args['from-block'] || (Number(currentBlock) - 100).toString())
-    const TO_BLOCK = Number(args['to-block'] || currentBlock.toString())
+    let FROM_BLOCK: number
+    let TO_BLOCK: number
+    if (args['from-block'] && args['to-block']) {
+      FROM_BLOCK = Number(args['from-block'])
+      TO_BLOCK = Number(args['to-block'])
+    } else {
+      const currentBlock = await getBlockNumber(indexer.publicClient) // Approximate recent block
+      FROM_BLOCK = Number(args['from-block'] || (Number(currentBlock) - 100).toString())
+      TO_BLOCK = Number(args['to-block'] || currentBlock.toString())
+    }
+
     console.log('📋 Indexing Configuration:')
     console.log(`   RPC URL: ${RPC_URL}`)
     console.log(`   Block range: ${FROM_BLOCK} → ${TO_BLOCK}`)

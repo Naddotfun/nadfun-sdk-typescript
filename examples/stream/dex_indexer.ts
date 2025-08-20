@@ -15,6 +15,7 @@ import { parseArgs } from 'util'
 import { monadTestnet } from 'viem/chains'
 import { DexIndexer } from '../../src/stream'
 import { SwapEvent } from '../../src/types'
+import { getBlockNumber } from 'viem/actions'
 
 // Load environment variables
 config()
@@ -41,10 +42,7 @@ const TOKEN_ADDRESSES =
   args.tokens?.split(',').map(t => t.trim()) ||
   process.env.TOKENS?.split(',').map(t => t.trim()) ||
   []
-// Use recent blocks that are more likely to have swap events
-const currentBlock = 4000000 // Approximate recent block
-const FROM_BLOCK = Number(args['from-block'] || (currentBlock - 100).toString())
-const TO_BLOCK = Number(args['to-block'] || currentBlock.toString())
+// Use recent blocks that are more likely to have events
 
 async function executeDexIndexing() {
   console.log('🏊 NADS Fun SDK - DEX Event Indexer\n')
@@ -76,6 +74,17 @@ async function executeDexIndexing() {
       console.log('   bun run example:dex-indexer -- --tokens 0xToken1,0xToken2')
       console.log('   bun run example:dex-indexer -- --pools 0xPool1,0xPool2')
       return
+    }
+    // Use recent blocks that are more likely to have events
+    let FROM_BLOCK: number
+    let TO_BLOCK: number
+    if (args['from-block'] && args['to-block']) {
+      FROM_BLOCK = Number(args['from-block'])
+      TO_BLOCK = Number(args['to-block'])
+    } else {
+      const currentBlock = await getBlockNumber(indexer.publicClient) // Approximate recent block
+      FROM_BLOCK = Number(args['from-block'] || (Number(currentBlock) - 100).toString())
+      TO_BLOCK = Number(args['to-block'] || currentBlock.toString())
     }
 
     console.log('\n📋 Indexing Configuration:')
