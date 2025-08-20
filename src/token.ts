@@ -121,29 +121,6 @@ export class Token {
     return tx
   }
 
-  async checkAndApprove(
-    token: Address,
-    spender: Address,
-    requiredAmount: bigint,
-    options?: {
-      forceNew?: boolean
-      gasLimit?: bigint
-    }
-  ): Promise<string | null> {
-    if (!options?.forceNew) {
-      const currentAllowance = await this.getAllowance(token, spender)
-      if (currentAllowance >= requiredAmount) {
-        return null
-      }
-    }
-
-    // Use max uint256 for infinite approval if amount is large
-    const maxUint256 = 2n ** 256n - 1n
-    const approvalAmount = requiredAmount > 10n ** 24n ? maxUint256 : requiredAmount
-
-    return await this.approve(token, spender, approvalAmount, { gasLimit: options?.gasLimit })
-  }
-
   async getBalanceFormatted(token: Address, address?: Address): Promise<[bigint, string]> {
     const balance = await this.getBalance(token, address)
     const contract = getContract({
