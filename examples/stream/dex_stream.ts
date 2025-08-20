@@ -32,9 +32,15 @@ const { values: args } = parseArgs({
 })
 
 const RPC_URL = args['rpc-url'] || process.env.RPC_URL || monadTestnet.rpcUrls.default.http[0]
-const POOL_ADDRESSES = (args.pools?.split(',').map(p => p.trim()) || []) as `0x${string}`[]
-const TOKEN_ADDRESS = args.token
-const TOKEN_ADDRESSES = args.tokens?.split(',').map(t => t.trim()) || []
+const POOL_ADDRESSES = process.env.POOLS
+  ? process.env.POOLS.split(',').map(p => p.trim())
+  : ((args.pools?.split(',').map(p => p.trim()) || []) as `0x${string}`[])
+const TOKEN_ADDRESS =
+  args.token || process.env.TOKEN || '0xce3D002DD6ECc97a628ad04ffA59DA3D91a589B1'
+const TOKEN_ADDRESSES =
+  args.tokens?.split(',').map(t => t.trim()) ||
+  process.env.TOKENS?.split(',').map(t => t.trim()) ||
+  []
 
 let swapCount = 0
 
@@ -68,7 +74,7 @@ async function runDexStreamExample() {
     if (POOL_ADDRESSES.length > 0) {
       // Use provided pool addresses directly - much simpler now!
       console.log('📍 Using provided pool addresses...')
-      stream = await DexStream.createHttp(RPC_URL, POOL_ADDRESSES)
+      stream = await DexStream.createHttp(RPC_URL, POOL_ADDRESSES as `0x${string}`[])
 
       console.log('📋 Configuration:')
       console.log(`   Mode: Direct pool monitoring`)
