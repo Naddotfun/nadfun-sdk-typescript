@@ -229,12 +229,12 @@ function showUsageExamples() {
   console.log('')
 
   console.log('4. 🎪 Filter event types:')
-  console.log('   bun run example:curve-indexer -- --events Buy,Sell,Create')
+  console.log('   bun run example:curve-indexer -- --events CurveBuy,CurveSell,CurveCreate')
   console.log('')
 
   console.log('5. 🎛️  Combined filtering:')
   console.log(
-    '   bun run example:curve-indexer -- --tokens 0xToken1 --events Buy,Sell --from-block 1500000'
+    '   bun run example:curve-indexer -- --tokens 0xToken1 --events CurveBuy,CurveSell --from-block 1500000'
   )
   console.log('')
 
