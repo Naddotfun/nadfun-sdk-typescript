@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.1] - 2024-12-19
+
+### 📚 Documentation Improvements
+
+### 🐛 Bug Fixes
+
+- **Documentation Corrections**:
+  - Fixed `customGas` examples in high-speed mode documentation
+  - Corrected default behavior description for `customGas` option
+  - Updated type annotations for better clarity
+
 ## [0.2.0] - 2024-12-19
 
 ### 🚀 Major Features
@@ -22,7 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Improved Transaction Reliability**: Better success rates with network-aware gas estimation
 - **Optimized for Different Use Cases**:
   - Default mode for general applications (real-time estimation)
-  - High-speed mode for bots (`customGas: false`)
+  - High-speed mode for bots (`customGas: true`)
   - Safety mode with buffers for critical operations
 
 ### ✨ New Features

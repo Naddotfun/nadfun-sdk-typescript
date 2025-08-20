@@ -83,7 +83,7 @@ const main = async () => {
 
   // High-speed trading mode (for bots)
   const fastTxHash = await trade.buy(buyParams, quote.router, {
-    customGas: false, // Use pre-configured fast limits
+    customGas: true, // Use pre-configured fast limits
   })
 
   // Token operations
@@ -137,7 +137,7 @@ const txHash = await trade.buy(buyParams, router, {
 ```typescript
 // Maximum speed with pre-configured limits
 const txHash = await trade.buy(buyParams, router, {
-  customGas: false, // Skip estimation, use fast defaults
+  customGas: true, // Skip estimation, use fast defaults
 })
 
 // Perfect for:
@@ -488,7 +488,7 @@ await trade.buy(params, router, {
 
 - [ ] Remove `gasLimit` parameters from trade calls
 - [ ] Add `gasBufferPercent` for production applications (recommended: 10-20%)
-- [ ] Use `customGas: false` for high-frequency trading bots
+- [ ] Use `customGas: true` for high-frequency trading bots
 - [ ] Test with new defaults - they should work better out of the box!
 
 ## Examples
