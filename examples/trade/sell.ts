@@ -36,7 +36,7 @@ const PRIVATE_KEY =
 const TOKEN_ADDRESS =
   args['token'] || process.env.TOKEN || '0xce3D002DD6ECc97a628ad04ffA59DA3D91a589B1'
 const AMOUNT_TOKENS = parseUnits(args['amount'] || '100', 18)
-const SLIPPAGE_PERCENT = Number(args['slippage'] || '5')
+const SLIPPAGE_PERCENT = Number(args['slippage'] || '30')
 
 async function executeSellExample() {
   console.log('💸 NADS Fun SDK - Sell Example\n')
