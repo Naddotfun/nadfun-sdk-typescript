@@ -2,6 +2,34 @@
 
 A comprehensive TypeScript SDK for interacting with Nad.fun ecosystem contracts, including bonding curves, DEX trading, and real-time event monitoring.
 
+## 📋 Quick Navigation
+
+| 🚀 Getting Started                        | 📊 Features                                           | 💼 Examples                                      |
+| ----------------------------------------- | ----------------------------------------------------- | ------------------------------------------------ |
+| [Installation](#installation)             | [Batch Operations](#-batch-operations)                | [Trading Examples](#trading-examples)            |
+| [Quick Start](#quick-start)               | [Trading](#-trading)                                  | [Token Examples](#token-examples)                |
+| [Configuration](#configuration)           | [Token Operations](#-token-operations)                | [Stream Examples](#stream-examples)              |
+| [Contract Addresses](#contract-addresses) | [Slippage Management](#-advanced-slippage-management) | [Testing & Verification](#testing--verification) |
+
+| 📚 Documentation                                | 🔧 Advanced                                        | 🎯 Quick Commands              |
+| ----------------------------------------------- | -------------------------------------------------- | ------------------------------ |
+| [Core Types](#core-types)                       | [Real-time Streaming](#-real-time-event-streaming) | `bun run example:buy`          |
+| [Error Handling](#error-handling)               | [Historical Data](#-historical-data-analysis)      | `bun run example:sell-permit`  |
+| [CLI Arguments](#cli-arguments)                 | [Pool Discovery](#-pool-discovery)                 | `bun run example:token-utils`  |
+| [Environment Variables](#environment-variables) | [DEX Monitoring](#-dex-monitoring)                 | `bun run example:curve-stream` |
+
+### ⚡ Try It Now
+
+```bash
+# Install and setup
+bun add @nadfun/sdk
+cp env.example .env  # Edit with your keys
+
+# Quick test commands
+bun run example:buy -- --token 0xYourTokenAddress
+bun run example:token-utils -- --tokens 0xToken1,0xToken2
+```
+
 ## Installation
 
 ```bash
@@ -17,22 +45,35 @@ pnpm add @nadfun/sdk
 ## Quick Start
 
 ```typescript
-import { Trade, Token, parseEther, formatEther } from '@nadfun/sdk'
+import { Trade, Token, parseEther, formatUnits } from '@nadfun/sdk'
 
 const main = async () => {
   const rpcUrl = 'https://your-rpc-endpoint'
   const privateKey = 'your_private_key_here'
+  const tokenAddress = '0x...' as `0x${string}`
 
   // Trading
   const trade = new Trade(rpcUrl, privateKey)
-  const token = '0x...' as `0x${string}`
-  const { router, amount: amountOut } = await trade.getAmountOut(token, parseEther('0.1'), true)
+  const quote = await trade.getAmountOut(tokenAddress, parseEther('0.1'), true)
+  console.log(`Quote: ${formatUnits(quote.amount, 18)} tokens`)
+
+  // Buy tokens
+  const buyParams = {
+    token: tokenAddress,
+    to: trade.address,
+    amountIn: parseEther('0.1'),
+    amountOutMin: quote.amount,
+  }
+  const txHash = await trade.buy(buyParams, quote.router)
+  console.log(`Transaction: ${txHash}`)
 
   // Token operations
-  const tokenHelper = new Token(rpcUrl, privateKey)
-  const balance = await tokenHelper.getBalance(token)
+  const token = new Token(rpcUrl, privateKey)
+  const metadata = await token.getMetadata(tokenAddress)
+  const balance = await token.getBalance(tokenAddress)
 
-  console.log(`Balance: ${formatEther(balance)}`)
+  console.log(`Token: ${metadata.name} (${metadata.symbol})`)
+  console.log(`Balance: ${formatUnits(balance, metadata.decimals)}`)
 }
 
 main().catch(console.error)
@@ -40,31 +81,110 @@ main().catch(console.error)
 
 ## Features
 
-### 🚀 Trading
+### ⚡ Batch Operations
 
-Execute buy/sell operations on bonding curves with slippage protection:
+Efficiently manage multiple tokens with optimized batch calls:
 
 ```typescript
-import { Trade, calculateSlippage, parseEther, formatEther } from '@nadfun/sdk'
-import type { BuyParams } from '@nadfun/sdk'
+import { Token } from '@nadfun/sdk'
+
+const token = new Token(rpcUrl, privateKey)
+const tokens = ['0x...', '0x...', '0x...']
+
+// Batch fetch metadata and balances
+const metadata = await token.batchGetMetadata(tokens)
+const balances = await token.batchGetBalances(tokens)
+
+// Batch allowance checks
+const allowances = await token.batchGetAllowances(tokens[0], [router1, router2])
+
+// Results are automatically organized by address
+Object.entries(metadata).forEach(([address, meta]) => {
+  const balance = balances[address]
+  console.log(`${meta.symbol}: ${formatUnits(balance, meta.decimals)}`)
+})
+```
+
+### 🚀 Trading
+
+Execute buy/sell operations with automatic router detection:
+
+```typescript
+import { Trade, parseEther, formatUnits } from '@nadfun/sdk'
+import { calculateMinAmountOut, SLIPPAGE_PRESETS } from '@nadfun/sdk/utils'
 
 const trade = new Trade(rpcUrl, privateKey)
+const tokenAddress = '0x...' as `0x${string}`
 
-// Get quote and execute buy
-const { router, amount: expectedTokens } = await trade.getAmountOut(token, parseEther('0.1'), true)
-const minTokens = calculateSlippage(expectedTokens, 5.0) // 5% slippage
+// Buy tokens with proper slippage calculation
+const quote = await trade.getAmountOut(tokenAddress, parseEther('0.1'), true)
+const minTokens = calculateMinAmountOut(quote.amount, 5.0) // 5% slippage
 
-const buyParams: BuyParams = {
-  token,
+const buyParams = {
+  token: tokenAddress,
+  to: trade.address,
   amountIn: parseEther('0.1'),
   amountOutMin: minTokens,
-  to: trade.address,
-  deadline: Math.floor(Date.now() / 1000) + 300, // 5 minutes
 }
 
-const txHash = await trade.buy(buyParams, router)
-console.log(`Transaction: ${txHash}`)
+const txHash = await trade.buy(buyParams, quote.router)
+console.log(`Buy transaction: ${txHash}`)
+
+// Sell tokens with permit (gasless)
+const sellPermitParams = {
+  token: tokenAddress,
+  to: trade.address,
+  amountIn: parseEther('100'),
+  amountOutMin: parseEther('0.05'),
+  amountAllowance: parseEther('100'),
+  deadline: Math.floor(Date.now() / 1000) + 3600,
+}
+
+const sellTx = await trade.sellPermit(sellPermitParams, quote.router)
+console.log(`Sell transaction: ${sellTx}`)
+
+// Using slippage presets for different scenarios
+const conservativeMin = calculateMinAmountOut(quote.amount, SLIPPAGE_PRESETS.LOW) // 0.5%
+const standardMin = calculateMinAmountOut(quote.amount, SLIPPAGE_PRESETS.NORMAL) // 1.0%
+const aggressiveMin = calculateMinAmountOut(quote.amount, SLIPPAGE_PRESETS.HIGH) // 3.0%
 ```
+
+### 📊 Advanced Slippage Management
+
+The SDK provides sophisticated slippage calculation utilities:
+
+```typescript
+import {
+  calculateMinAmountOut,
+  calculateActualSlippage,
+  isSlippageWithinTolerance,
+  SLIPPAGE_PRESETS,
+  getRecommendedSlippage,
+} from '@nadfun/sdk/utils'
+
+// Precise slippage calculation (no floating point errors)
+const expectedOut = parseEther('100')
+const minOut = calculateMinAmountOut(expectedOut, 2.5) // 2.5% slippage
+
+// Get recommended slippage based on token type and trade size
+const recommendedSlippage = getRecommendedSlippage(1000, 'minor') // $1000 trade, minor token
+const minAmount = calculateMinAmountOut(expectedOut, recommendedSlippage)
+
+// After transaction: verify actual slippage
+const actualSlippage = calculateActualSlippage(expectedOut, actualReceived)
+const withinTolerance = isSlippageWithinTolerance(expectedOut, actualReceived, 3.0)
+
+console.log(`Actual slippage: ${actualSlippage}%`)
+console.log(`Within tolerance: ${withinTolerance}`)
+```
+
+**Available Presets:**
+
+- `MINIMAL`: 0.1% (stablecoins)
+- `LOW`: 0.5% (major tokens)
+- `NORMAL`: 1.0% (standard)
+- `HIGH`: 3.0% (illiquid tokens)
+- `EMERGENCY`: 10.0% (emergency trades)
 
 ### ⛽ Gas Management
 
@@ -122,23 +242,46 @@ const txHash = await trade.buy(buyParams, router, {
 
 ### 📊 Token Operations
 
-Interact with ERC-20 tokens and get metadata:
+Interact with ERC-20 tokens with individual and batch operations:
 
 ```typescript
-import { Token, formatUnits } from '@nadfun/sdk'
+import { Token, formatUnits, parseEther } from '@nadfun/sdk'
 
-const tokenHelper = new Token(rpcUrl, privateKey)
+const token = new Token(rpcUrl, privateKey)
 
-// Get token metadata
-const metadata = await tokenHelper.getMetadata(token)
-console.log(`Token: ${metadata.name} (${metadata.symbol})`)
+// Individual token operations
+const metadata = await token.getMetadata(tokenAddress)
+const balance = await token.getBalance(tokenAddress)
+const health = await token.getTokenHealth(tokenAddress)
 
-// Check balances and allowances
-const balance = await tokenHelper.getBalance(token, wallet)
-const allowance = await tokenHelper.getAllowance(token, owner, spender)
+console.log(`${metadata.name} (${metadata.symbol})`)
+console.log(`Balance: ${formatUnits(balance, metadata.decimals)}`)
+console.log(`Contract: ${health.isContract ? '✅' : '❌'}`)
+console.log(`ERC20: ${health.hasBasicFunctions ? '✅' : '❌'}`)
+console.log(`Permit: ${health.hasPermit ? '✅' : '❌'}`)
 
-// Approve tokens with smart approval (checks allowance first)
-const txHash = await tokenHelper.checkAndApprove(token, spender, amount)
+// Batch operations for multiple tokens
+const tokens = ['0x...', '0x...', '0x...']
+const batchMetadata = await token.batchGetMetadata(tokens)
+const batchBalances = await token.batchGetBalances(tokens)
+
+// Check allowances for all tokens
+for (const tokenAddr of tokens) {
+  const allowances = await token.batchGetAllowances(tokenAddr, [router1, router2])
+  console.log(`${tokenAddr} allowances:`, allowances)
+}
+
+// Generate permit signature (EIP-2612)
+if (health.hasPermit) {
+  const deadline = Math.floor(Date.now() / 1000) + 3600
+  const signature = await token.generatePermitSignature(
+    tokenAddress,
+    spender,
+    parseEther('100'),
+    deadline
+  )
+  console.log(`Permit signature: nonce ${signature.nonce}`)
+}
 ```
 
 ### 🔄 Real-time Event Streaming
@@ -265,20 +408,27 @@ export PRIVATE_KEY="your_private_key_here"
 export RPC_URL="https://your-rpc-endpoint"
 export TOKEN="0xTokenAddress"
 
-bun run example:buy              # Buy tokens with gas comparison
-bun run example:sell             # Sell tokens with gas optimization
-bun run example:sell-permit      # Gasless sell with permit signature
+bun run example:buy              # Buy tokens
+bun run example:sell             # Sell tokens with approval management
+bun run example:sell-permit      # Gasless sell with EIP-2612 permit
 
 # Using command line arguments
-bun run example:buy -- --private-key your_private_key_here --rpc-url https://your-rpc-endpoint --token 0xTokenAddress
-bun run example:sell -- --private-key your_private_key_here --rpc-url https://your-rpc-endpoint --token 0xTokenAddress
-bun run example:sell-permit -- --private-key your_private_key_here --rpc-url https://your-rpc-endpoint --token 0xTokenAddress
+bun run example:buy -- --token 0xTokenAddress --amount 0.1
+bun run example:sell -- --token 0xTokenAddress --amount 100
+bun run example:sell-permit -- --token 0xTokenAddress --amount 100
 ```
 
 ### Token Examples
 
 ```bash
-bun run example:token-utils # Comprehensive token utilities and batch operations
+# Using environment variables
+export TOKENS="0xToken1,0xToken2,0xToken3"  # Multiple tokens for batch operations
+
+bun run example:token-utils                  # Token utilities with batch operations
+bun run example:approve-test                 # Token approval testing
+
+# Using command line arguments
+bun run example:token-utils -- --tokens 0xToken1,0xToken2,0xToken3
 ```
 
 ### Stream Examples
@@ -341,51 +491,25 @@ Features:
 - ✅ Pool metadata included
 - ✅ WebSocket streaming
 
-### Utility Examples
-
-```bash
-bun run example:gas-estimator # Gas estimation and optimization analysis
-```
-
 ### Testing & Verification
 
-All examples have been tested and verified working. Here are ready-to-run test commands:
-
-#### 🔄 Real-time Streaming Tests
+Quick test commands to verify functionality:
 
 ```bash
-# Test bonding curve streaming (all events)
-bun run example:curve-stream
+# Trading examples
+bun run example:buy -- --token 0xYourTokenAddress
+bun run example:sell -- --token 0xYourTokenAddress
+bun run example:sell-permit -- --token 0xYourTokenAddress
 
-# Test DEX swap streaming (auto-discover pools)
+# Token utilities
+bun run example:token-utils -- --tokens 0xToken1,0xToken2
+
+# Streaming (real-time)
+bun run example:curve-stream
 bun run example:dex-stream -- --tokens 0xYourTokenAddress
 
-# Test with specific token filtering
-bun run example:curve-stream -- --token 0xYourTokenAddress
-
-# Test with multiple tokens
-bun run example:dex-stream -- --tokens 0xToken1,0xToken2
-```
-
-#### 📊 Historical Data Tests
-
-```bash
-# Test bonding curve historical analysis
-bun run example:curve-indexer -- --tokens 0xYourTokenAddress
-
-# Test gas estimation and comparison
-bun run example:gas-estimator -- --token 0xYourTokenAddress
-```
-
-#### ⚡ Quick Validation
-
-```bash
-# Minimal test - just connect and verify
-bun run example:curve-stream
-# Should output: "🎧 Listening for curve events..."
-
-bun run example:dex-stream -- --token 0xTokenAddress
-# Should output: "🔍 Discovering pools for 1 tokens..."
+# Historical data
+bun run example:curve-indexer
 ```
 
 ## Core Types
@@ -497,8 +621,8 @@ interface CurveData {
 export RPC_URL="https://your-rpc-endpoint"
 export PRIVATE_KEY="your_private_key_here"
 export WS_URL="wss://your-ws-endpoint"
-export TOKEN="0xTokenAddress"
-export TOKENS="0xToken1,0xToken2"  # Multiple tokens for monitoring
+export TOKEN="0xTokenAddress"                    # Single token for trade examples
+export TOKENS="0xToken1,0xToken2,0xToken3"      # Multiple tokens for batch operations
 ```
 
 ### RPC Limitations
@@ -529,18 +653,19 @@ All examples support command line arguments for configuration:
 --ws-url <URL>       # WebSocket URL
 --private-key <KEY>  # Private key for transactions
 --token <ADDRESS>    # Single token address
---tokens <ADDRS>     # Multiple token addresses: 'addr1,addr2'
---help, -h           # Show help
+--tokens <ADDRS>     # Multiple token addresses (comma-separated, no spaces)
+--amount <VALUE>     # Amount for trading examples
+--slippage <PERCENT> # Slippage percentage (default: 5)
 
-# Example usage
-bun run example:sell-permit -- \
-  --rpc-url https://your-rpc-endpoint \
-  --private-key your_private_key_here \
-  --token 0xYourTokenAddress
+# Trading examples
+bun run example:buy -- --token 0xTokenAddress --amount 0.1 --slippage 3
+bun run example:sell -- --token 0xTokenAddress --amount 100 --slippage 5
 
-# Example with multiple tokens for monitoring
-bun run example:dex-stream -- \
-  --tokens 0xToken1,0xToken2,0xToken3
+# Token utilities with multiple tokens
+bun run example:token-utils -- --tokens 0xToken1,0xToken2,0xToken3
+
+# Stream monitoring
+bun run example:dex-stream -- --tokens 0xToken1,0xToken2,0xToken3
 ```
 
 ## Contract Addresses

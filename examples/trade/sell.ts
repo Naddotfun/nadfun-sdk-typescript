@@ -12,6 +12,7 @@ import { Token } from '../../src/token'
 import { formatUnits, maxUint256, parseUnits } from 'viem'
 import { monadTestnet } from 'viem/chains'
 import { parseArgs } from 'util'
+import { calculateMinAmountOut } from '../../src/utils/slippage'
 
 config()
 
@@ -67,9 +68,10 @@ async function executeSellExample() {
 
     // Get quote
     const quote = await trade.getAmountOut(TOKEN_ADDRESS as `0x${string}`, AMOUNT_TOKENS, false)
-    const minMON = (quote.amount * BigInt(100 - SLIPPAGE_PERCENT)) / BigInt(100)
+    const minMON = calculateMinAmountOut(quote.amount, SLIPPAGE_PERCENT)
 
-    console.log(`📈 Quote: ${formatUnits(quote.amount, 18)} MON (min: ${formatUnits(minMON, 18)})`)
+    console.log(`📈 Quote: ${formatUnits(quote.amount, 18)} MON`)
+    console.log(`   Slippage: ${SLIPPAGE_PERCENT}% (min: ${formatUnits(minMON, 18)} MON)`)
 
     // Check allowance
     const currentAllowance = await token.getAllowance(TOKEN_ADDRESS as `0x${string}`, quote.router)

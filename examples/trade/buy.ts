@@ -11,6 +11,7 @@ import { Trade } from '../../src/trade'
 import { formatUnits, parseUnits } from 'viem'
 import { monadTestnet } from 'viem/chains'
 import { parseArgs } from 'util'
+import { calculateMinAmountOut, SLIPPAGE_PRESETS } from '../../src/utils/slippage'
 
 config()
 
@@ -66,11 +67,16 @@ async function executeBuyExample() {
 
     // Get quote
     const quote = await trade.getAmountOut(TOKEN_ADDRESS as `0x${string}`, AMOUNT_MON, true)
-    const minTokens = (quote.amount * BigInt(100 - SLIPPAGE_PERCENT)) / BigInt(100)
+    const minTokens = calculateMinAmountOut(quote.amount, SLIPPAGE_PERCENT)
 
-    console.log(
-      `📈 Quote: ${formatUnits(quote.amount, 18)} tokens (min: ${formatUnits(minTokens, 18)})`
-    )
+    console.log(`📈 Quote: ${formatUnits(quote.amount, 18)} tokens`)
+    console.log(`   Slippage: ${SLIPPAGE_PERCENT}% (min: ${formatUnits(minTokens, 18)} tokens)`)
+
+    // Show slippage comparison
+    if (SLIPPAGE_PERCENT !== SLIPPAGE_PRESETS.NORMAL) {
+      const normalSlippage = calculateMinAmountOut(quote.amount, SLIPPAGE_PRESETS.NORMAL)
+      console.log(`   Standard 1%: ${formatUnits(normalSlippage, 18)} tokens (comparison)`)
+    }
 
     // Determine router type
     const routerType = quote.router.toLowerCase().includes('4fbdc') ? 'bonding' : 'dex'
