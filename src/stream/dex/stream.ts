@@ -1,7 +1,8 @@
 import { createPublicClient, http, webSocket, parseEventLogs, type Log } from 'viem'
 import { DexEventType, SwapEvent } from '@/types'
 import { v3PoolAbi } from '@/abis/v3pool'
-import { CURRENT_CHAIN } from '@/constants'
+import { v3factoryAbi } from '@/abis/v3factory'
+import { CURRENT_CHAIN, CONTRACTS, NADS_FEE_TIER } from '@/constants'
 import type { Address, PublicClient } from 'viem'
 
 /**
@@ -57,12 +58,13 @@ export class Stream {
 
   /**
    * Create stream by discovering pools for token addresses
-   * Note: Requires factory and WMON addresses to be configured
+   * Uses V3 Factory to find token-WMON pools with NADS fee tier
    */
   static async discoverPoolsForTokens(rpcUrl: string, tokenAddresses: Address[]): Promise<Stream> {
     console.log(`🔍 Discovering pools for ${tokenAddresses.length} tokens...`)
-    const poolAddresses: Address[] = []
-    console.log(`🔍 Pool discovery not yet implemented - using empty pool list`)
+
+    const poolAddresses: Address[] = await Stream.findPoolsForTokens(rpcUrl, tokenAddresses)
+    console.log(`✅ Found ${poolAddresses.length} pools`)
 
     return Stream.createHttp(rpcUrl, poolAddresses)
   }
@@ -72,10 +74,69 @@ export class Stream {
    */
   static async discoverPoolsForTokensWs(wsUrl: string, tokenAddresses: Address[]): Promise<Stream> {
     console.log(`🔍 Discovering pools for ${tokenAddresses.length} tokens...`)
-    const poolAddresses: Address[] = []
-    console.log(`🔍 Pool discovery not yet implemented - using empty pool list`)
+
+    const poolAddresses: Address[] = await Stream.findPoolsForTokens(
+      wsUrl.replace('wss:', 'https:').replace('ws:', 'http:'),
+      tokenAddresses
+    )
+    console.log(`✅ Found ${poolAddresses.length} pools`)
 
     return Stream.createWebSocket(wsUrl, poolAddresses)
+  }
+
+  /**
+   * Find pool addresses for given token addresses using V3 Factory
+   * Each token is paired with WMON using NADS fee tier
+   */
+  private static async findPoolsForTokens(
+    rpcUrl: string,
+    tokenAddresses: Address[]
+  ): Promise<Address[]> {
+    const client = createPublicClient({
+      chain: CURRENT_CHAIN,
+      transport: http(rpcUrl),
+    })
+
+    const wmonAddress = CONTRACTS.MONAD_TESTNET.WMON as Address
+    const factoryAddress = CONTRACTS.MONAD_TESTNET.V3_FACTORY as Address
+    const poolAddresses: Address[] = []
+
+    for (const tokenAddress of tokenAddresses) {
+      try {
+        // Skip if token is WMON itself
+        if (tokenAddress.toLowerCase() === wmonAddress.toLowerCase()) {
+          console.log(`⏭️  Skipping WMON token itself: ${tokenAddress}`)
+          continue
+        }
+
+        const [token0, token1] =
+          tokenAddress.toLowerCase() < wmonAddress.toLowerCase()
+            ? [tokenAddress, wmonAddress]
+            : [wmonAddress, tokenAddress]
+
+        console.log(`🔍 Looking for pool: ${token0} / ${token1} (fee: ${NADS_FEE_TIER})`)
+
+        // Call V3 Factory getPool function
+        const poolAddress = (await client.readContract({
+          address: factoryAddress,
+          abi: v3factoryAbi,
+          functionName: 'getPool',
+          args: [token0, token1, NADS_FEE_TIER],
+        })) as Address
+
+        // Check if pool exists (not zero address)
+        if (poolAddress && poolAddress !== '0x0000000000000000000000000000000000000000') {
+          console.log(`✅ Found pool: ${poolAddress}`)
+          poolAddresses.push(poolAddress)
+        } else {
+          console.log(`❌ No pool found for ${tokenAddress}`)
+        }
+      } catch (error) {
+        console.error(`❌ Error finding pool for ${tokenAddress}:`, error)
+      }
+    }
+
+    return poolAddresses
   }
 
   /**
