@@ -440,11 +440,20 @@ The SDK provides comprehensive streaming examples:
 **1. curve_indexer** - Historical bonding curve event analysis
 
 ```bash
-# Fetch historical Create, Buy, Sell events
+# Fetch historical Create, Buy, Sell events from recent blocks
 bun run example:curve-indexer
 
-# With specific time range (respects 100 block limit per RPC call)
+# With specific block range
 bun run example:curve-indexer -- --from-block 18000000 --to-block 18000100
+
+# Filter specific tokens
+bun run example:curve-indexer -- --tokens 0xToken1,0xToken2,0xToken3
+
+# Filter specific event types
+bun run example:curve-indexer -- --events Buy,Sell,Create
+
+# Combined filtering
+bun run example:curve-indexer -- --tokens 0xToken1 --events Buy,Sell --from-block 1500000
 ```
 
 **2. curve_stream** - Real-time bonding curve monitoring
@@ -479,7 +488,26 @@ bun run example:dex-stream -- --tokens 0xToken1,0xToken2
 bun run example:dex-stream -- --token 0xTokenAddress
 
 # Scenario 3: Monitor specific pools directly
-POOLS=0xPool1,0xPool2 bun run example:dex-stream
+bun run example:dex-stream -- --pools 0xPool1,0xPool2
+```
+
+**4. dex_indexer** - Historical DEX swap analysis
+
+```bash
+# Fetch historical Swap events from recent blocks
+bun run example:dex-indexer
+
+# With specific block range
+bun run example:dex-indexer -- --from-block 18000000 --to-block 18000100
+
+# Filter specific tokens (auto pool discovery)
+bun run example:dex-indexer -- --tokens 0xToken1,0xToken2
+
+# Monitor specific pools directly
+bun run example:dex-indexer -- --pools 0xPool1,0xPool2
+
+# Combined filtering with block range
+bun run example:dex-indexer -- --tokens 0xToken1 --from-block 1500000 --to-block 1600000
 ```
 
 Features:
@@ -487,9 +515,11 @@ Features:
 - ✅ Automatic pool discovery for tokens
 - ✅ Direct pool address monitoring
 - ✅ Single token pool discovery
-- ✅ Real-time Uniswap V3 swap events
+- ✅ Real-time Uniswap V3 swap events (dex_stream)
+- ✅ Historical DEX swap analysis (dex_indexer)
 - ✅ Pool metadata included
-- ✅ WebSocket streaming
+- ✅ WebSocket streaming (dex_stream)
+- ✅ Block range filtering (dex_indexer)
 
 ### Testing & Verification
 
@@ -510,6 +540,7 @@ bun run example:dex-stream -- --tokens 0xYourTokenAddress
 
 # Historical data
 bun run example:curve-indexer
+bun run example:dex-indexer
 ```
 
 ## Core Types
@@ -654,8 +685,12 @@ All examples support command line arguments for configuration:
 --private-key <KEY>  # Private key for transactions
 --token <ADDRESS>    # Single token address
 --tokens <ADDRS>     # Multiple token addresses (comma-separated, no spaces)
+--pools <ADDRS>      # Pool addresses (comma-separated, no spaces)
 --amount <VALUE>     # Amount for trading examples
 --slippage <PERCENT> # Slippage percentage (default: 5)
+--from-block <NUM>   # Starting block number for historical data
+--to-block <NUM>     # Ending block number for historical data
+--events <TYPES>     # Event types filter (comma-separated)
 
 # Trading examples
 bun run example:buy -- --token 0xTokenAddress --amount 0.1 --slippage 3
@@ -666,6 +701,11 @@ bun run example:token-utils -- --tokens 0xToken1,0xToken2,0xToken3
 
 # Stream monitoring
 bun run example:dex-stream -- --tokens 0xToken1,0xToken2,0xToken3
+bun run example:curve-stream -- --token 0xTokenAddress
+
+# Historical data with block range
+bun run example:curve-indexer -- --from-block 1500000 --to-block 1600000
+bun run example:dex-indexer -- --tokens 0xToken1 --from-block 1500000 --to-block 1600000
 ```
 
 ## Contract Addresses
