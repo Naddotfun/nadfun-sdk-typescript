@@ -24,7 +24,7 @@
     "example:curve-stream": "tsx examples/stream/curve_stream.ts",
     "example:dex-indexer": "tsx examples/stream/dex_indexer.ts",
     "example:dex-stream": "tsx examples/stream/dex_stream.ts",
-    "example:gas-estimator": "tsx examples/utils/gas_estimator.ts"
+    "example:gas-estimation": "tsx examples/trade/gas_estimation.ts"
   },
   "keywords": [
     "blockchain",

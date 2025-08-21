@@ -62,6 +62,10 @@ export interface SellParams {
 export interface SellPermitParams extends SellParams {
   /** Amount to approve for spending via permit */
   amountAllowance: bigint
+  /** Signature v, r, s */
+  v: number
+  r: `0x${string}`
+  s: `0x${string}`
 }
 
 /**

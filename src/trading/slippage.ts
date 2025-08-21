@@ -118,58 +118,5 @@ export function isSlippageWithinTolerance(
   return actualSlippage <= maxSlippagePercent
 }
 
-/**
- * Slippage presets for common use cases
- */
-export const SLIPPAGE_PRESETS = {
-  MINIMAL: 0.1, // 0.1% - For stablecoins and very liquid pairs
-  LOW: 0.5, // 0.5% - For major tokens with good liquidity
-  NORMAL: 1.0, // 1.0% - Standard slippage for most trades
-  HIGH: 3.0, // 3.0% - For less liquid tokens
-  VERY_HIGH: 5.0, // 5.0% - For very illiquid or volatile tokens
-  EMERGENCY: 10.0, // 10.0% - Emergency trades, accept high slippage
-} as const
-
-/**
- * Get recommended slippage based on trade characteristics
- *
- * @param tradeSize Trade size in USD (approximate)
- * @param tokenType Type of token being traded
- * @returns Recommended slippage percentage
- */
-export function getRecommendedSlippage(
-  tradeSize: number,
-  tokenType: 'stablecoin' | 'major' | 'minor' | 'micro'
-): number {
-  // Base slippage by token type
-  let baseSlippage: number
-  switch (tokenType) {
-    case 'stablecoin':
-      baseSlippage = SLIPPAGE_PRESETS.MINIMAL
-      break
-    case 'major':
-      baseSlippage = SLIPPAGE_PRESETS.LOW
-      break
-    case 'minor':
-      baseSlippage = SLIPPAGE_PRESETS.NORMAL
-      break
-    case 'micro':
-      baseSlippage = SLIPPAGE_PRESETS.HIGH
-      break
-    default:
-      baseSlippage = SLIPPAGE_PRESETS.NORMAL
-  }
-
-  // Adjust for trade size
-  if (tradeSize > 100000) {
-    baseSlippage *= 2 // Large trades need more slippage
-  } else if (tradeSize > 10000) {
-    baseSlippage *= 1.5
-  }
-
-  // Cap at emergency level
-  return Math.min(baseSlippage, SLIPPAGE_PRESETS.EMERGENCY)
-}
-
 // Re-export from viem for convenience
 export { parseEther, formatEther, parseUnits, formatUnits } from 'viem'

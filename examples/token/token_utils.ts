@@ -7,7 +7,7 @@
  */
 
 import { config } from 'dotenv'
-import { Token } from '../../src/token'
+import { Token } from '../../src/token/token'
 import { formatUnits, parseEther } from 'viem'
 import { monadTestnet } from 'viem/chains'
 import { parseArgs } from 'util'

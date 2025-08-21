@@ -7,12 +7,12 @@
  */
 
 import { config } from 'dotenv'
-import { Trade } from '../../src/trade'
-import { Token } from '../../src/token'
+import { Trade } from '../../src/trading/trade'
+import { Token } from '../../src/token/token'
 import { formatUnits, parseUnits } from 'viem'
 import { monadTestnet } from 'viem/chains'
 import { parseArgs } from 'util'
-import { calculateMinAmountOut } from '../../src/utils/slippage'
+import { calculateMinAmountOut } from '../../src/trading/slippage'
 
 config()
 
@@ -83,6 +83,13 @@ async function executeSellPermitExample() {
     // Execute permit sell
     console.log('⚡ Executing permit sell...')
 
+    const signature = await token.generatePermitSignature(
+      TOKEN_ADDRESS as `0x${string}`,
+      quote.router,
+      AMOUNT_TOKENS,
+      BigInt(deadline)
+    )
+
     const sellPermitParams = {
       token: TOKEN_ADDRESS as `0x${string}`,
       to: trade.address as `0x${string}`,
@@ -90,9 +97,17 @@ async function executeSellPermitExample() {
       amountOutMin: minMON,
       amountAllowance: AMOUNT_TOKENS,
       deadline,
+      v: signature.v,
+      r: signature.r,
+      s: signature.s,
     }
 
-    const permitSellTx = await trade.sellPermit(sellPermitParams, quote.router, { routerType })
+    const gasBufferPercent = 20
+
+    const permitSellTx = await trade.sellPermit(sellPermitParams, quote.router, {
+      routerType,
+      gasBufferPercent,
+    })
 
     console.log('✅ Transaction successful!')
     console.log(`   Hash: ${permitSellTx}`)

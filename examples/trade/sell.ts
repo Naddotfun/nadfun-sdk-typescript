@@ -7,12 +7,12 @@
  */
 
 import { config } from 'dotenv'
-import { Trade } from '../../src/trade'
-import { Token } from '../../src/token'
+import { Trade } from '../../src/trading/trade'
+import { Token } from '../../src/token/token'
 import { formatUnits, maxUint256, parseUnits } from 'viem'
 import { monadTestnet } from 'viem/chains'
 import { parseArgs } from 'util'
-import { calculateMinAmountOut } from '../../src/utils/slippage'
+import { calculateMinAmountOut } from '../../src/trading/slippage'
 
 config()
 
@@ -68,6 +68,7 @@ async function executeSellExample() {
 
     // Get quote
     const quote = await trade.getAmountOut(TOKEN_ADDRESS as `0x${string}`, AMOUNT_TOKENS, false)
+
     const minMON = calculateMinAmountOut(quote.amount, SLIPPAGE_PERCENT)
 
     console.log(`📈 Quote: ${formatUnits(quote.amount, 18)} MON`)

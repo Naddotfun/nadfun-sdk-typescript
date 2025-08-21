@@ -7,11 +7,11 @@
  */
 
 import { config } from 'dotenv'
-import { Trade } from '../../src/trade'
+import { Trade } from '../../src/trading/trade'
 import { formatUnits, parseUnits } from 'viem'
 import { monadTestnet } from 'viem/chains'
 import { parseArgs } from 'util'
-import { calculateMinAmountOut, SLIPPAGE_PRESETS } from '../../src/utils/slippage'
+import { calculateMinAmountOut } from '../../src/trading/slippage'
 
 config()
 
@@ -72,12 +72,6 @@ async function executeBuyExample() {
     console.log(`📈 Quote: ${formatUnits(quote.amount, 18)} tokens`)
     console.log(`   Slippage: ${SLIPPAGE_PERCENT}% (min: ${formatUnits(minTokens, 18)} tokens)`)
 
-    // Show slippage comparison
-    if (SLIPPAGE_PERCENT !== SLIPPAGE_PRESETS.NORMAL) {
-      const normalSlippage = calculateMinAmountOut(quote.amount, SLIPPAGE_PRESETS.NORMAL)
-      console.log(`   Standard 1%: ${formatUnits(normalSlippage, 18)} tokens (comparison)`)
-    }
-
     // Determine router type
     const routerType = quote.router.toLowerCase().includes('4fbdc') ? 'bonding' : 'dex'
     console.log(`🔄 Router: ${routerType}`)
@@ -92,7 +86,12 @@ async function executeBuyExample() {
       amountOutMin: minTokens,
     }
 
-    const txHash = await trade.buy(buyParams, quote.router, { routerType })
+    const gasBufferPercent = 20
+
+    const txHash = await trade.buy(buyParams, quote.router, {
+      routerType,
+      gasBufferPercent,
+    })
 
     console.log('✅ Transaction successful!')
     console.log(`   Hash: ${txHash}`)

@@ -12,7 +12,6 @@ export type {
   SellParams,
   SellPermitParams,
   QuoteResult,
-  GasConfig,
   GasEstimationParams,
   RouterConfig,
 } from './trade'

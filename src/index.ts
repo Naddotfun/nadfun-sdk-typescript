@@ -1,6 +1,6 @@
 // Main exports
-export { Trade } from './trade'
-export { Token } from './token'
+export { Trade } from './trading/trade'
+export { Token } from './token/token'
 
 // Types
 export type {
@@ -45,7 +45,7 @@ export {
   formatEther,
   parseUnits,
   formatUnits,
-} from './utils/slippage'
+} from './trading/slippage'
 
 // Gas estimation utils
 export {
@@ -54,10 +54,7 @@ export {
   estimateSellGas,
   estimateSellPermitGas,
   getRouterConfig,
-} from './utils/gas'
-
-// Gas configuration
-export { BONDING_ROUTER_GAS_CONFIG, DEX_ROUTER_GAS_CONFIG } from './utils/gasConfig'
+} from './trading/gas'
 
 // Constants
 export { CONTRACTS, CHAIN_ID, DEFAULT_DEADLINE_SECONDS } from './constants'
