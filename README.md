@@ -2,13 +2,6 @@
 
 A comprehensive TypeScript SDK for interacting with Nad.fun ecosystem contracts, including bonding curves, DEX trading, and real-time event monitoring.
 
-## What's New in v0.2.3
-
-- 🎯 **Enhanced Token Operations**: New batch methods, burn functions, and token health checks
-- 🚀 **Improved Streaming**: WebSocket support for indexers and simplified APIs
-- 📊 **Better Performance**: Optimized code with reduced complexity
-- 🔧 **Cleaner Codebase**: Removed redundant code and improved maintainability
-
 ## Installation
 
 ```bash
