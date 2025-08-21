@@ -1,6 +1,6 @@
 {
   "name": "@nadfun/sdk",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "TypeScript SDK for Nad.fun contracts",
   "main": "dist/index.js",
   "module": "dist/index.mjs",

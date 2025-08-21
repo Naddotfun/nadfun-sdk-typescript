@@ -74,7 +74,7 @@ async function runDexStreamExample() {
     if (POOL_ADDRESSES.length > 0) {
       // Use provided pool addresses directly - much simpler now!
       console.log('📍 Using provided pool addresses...')
-      stream = await DexStream.createHttp(RPC_URL, POOL_ADDRESSES as `0x${string}`[])
+      stream = new DexStream(RPC_URL, POOL_ADDRESSES as `0x${string}`[])
 
       console.log('📋 Configuration:')
       console.log(`   Mode: Direct pool monitoring`)

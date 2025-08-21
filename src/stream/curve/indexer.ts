@@ -1,5 +1,5 @@
 import type { PublicClient, Log } from 'viem'
-import { createPublicClient, http } from 'viem'
+import { createPublicClient, http, webSocket } from 'viem'
 import { CurveEventType, BondingCurveEvent } from '@/types'
 import { CONTRACTS, CURRENT_CHAIN } from '@/constants'
 import { parseBondingCurveEvent, sortEventsChronologically } from './parser'
@@ -13,16 +13,19 @@ export class Indexer {
   public readonly publicClient: PublicClient
   private readonly bondingCurveAddress: string
 
-  constructor(rpcUrl: string)
-  constructor(publicClient: PublicClient)
-  constructor(clientOrUrl: string | PublicClient) {
-    if (typeof clientOrUrl === 'string') {
-      this.publicClient = createPublicClient({
+  constructor(rpcUrl: string) {
+    if (rpcUrl.startsWith('wss:')) {
+      const client = createPublicClient({
         chain: CURRENT_CHAIN,
-        transport: http(clientOrUrl),
+        transport: webSocket(rpcUrl),
       })
+      this.publicClient = client
     } else {
-      this.publicClient = clientOrUrl
+      const client = createPublicClient({
+        chain: CURRENT_CHAIN,
+        transport: http(rpcUrl),
+      })
+      this.publicClient = client
     }
     this.bondingCurveAddress = CONTRACTS.MONAD_TESTNET.CURVE
   }
@@ -79,6 +82,7 @@ export class Indexer {
         events.push(event)
       } catch (error: any) {
         // Skip invalid logs silently
+        console.error('Error parsing bonding curve event:', error)
         continue
       }
     }

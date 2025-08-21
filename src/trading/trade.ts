@@ -61,19 +61,13 @@ export class Trade {
     this.curveRouter = getContract({
       address: CONTRACTS.MONAD_TESTNET.BONDING_CURVE_ROUTER,
       abi: bondingCurveRouterAbi,
-      client: {
-        public: this.publicClient,
-        wallet: this.walletClient,
-      },
+      client: this.publicClient,
     })
 
     this.dexRouter = getContract({
       address: CONTRACTS.MONAD_TESTNET.DEX_ROUTER,
       abi: dexRouterAbi,
-      client: {
-        public: this.publicClient,
-        wallet: this.walletClient,
-      },
+      client: this.publicClient,
     })
   }
 
@@ -118,9 +112,7 @@ export class Trade {
       amountOutMin: params.amountOutMin,
       token: params.token,
       to: params.to,
-      deadline: params.deadline
-        ? BigInt(params.deadline)
-        : BigInt(Math.floor(Date.now() / 1000) + 3600),
+      deadline: BigInt(params.deadline) || BigInt(Math.floor(Date.now() / 1000) + 3600),
     }
     const callData = encodeFunctionData({
       abi: routerAbi,
@@ -152,7 +144,7 @@ export class Trade {
       amountOutMin: params.amountOutMin,
       token: params.token,
       to: params.to,
-      deadline: BigInt(params.deadline),
+      deadline: BigInt(params.deadline) || BigInt(Math.floor(Date.now() / 1000) + 3600),
     }
 
     const sellData = encodeFunctionData({

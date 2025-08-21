@@ -89,40 +89,10 @@ async function executeTokenUtilsExample() {
       console.log(`   ${meta.symbol}:`)
       console.log(`     Contract: ${health.isContract ? '✅' : '❌'}`)
       console.log(`     ERC20: ${health.hasBasicFunctions ? '✅' : '❌'}`)
-      console.log(`     Permit: ${health.hasPermit ? '✅' : '❌'}`)
+
       console.log('')
     }
 
-    // Permit signature for tokens that support it
-    console.log('🎫 Permit Support:')
-    for (const tokenAddr of TOKENS) {
-      const meta = Object.values(batchMetadata).find(m => m.address === tokenAddr)
-
-      if (!meta) continue
-
-      const health = await token.getTokenHealth(tokenAddr as `0x${string}`)
-      if (health.hasPermit) {
-        console.log(`   ${meta.symbol}:`)
-        try {
-          const deadline = BigInt(Math.floor(Date.now() / 1000) + 3600)
-          const value = parseEther('100')
-          const spender = CONTRACTS.MONAD_TESTNET.DEX_ROUTER as `0x${string}`
-
-          const permitSignature = await token.generatePermitSignature(
-            tokenAddr as `0x${string}`,
-            spender,
-            value,
-            deadline
-          )
-
-          console.log(`     ✅ Generated signature (nonce: ${permitSignature.nonce})`)
-        } catch (error: any) {
-          console.log(`     ❌ Failed: ${error.message}`)
-        }
-      } else {
-        console.log(`   ${meta.symbol}: ❌ Not supported`)
-      }
-    }
     console.log('')
 
     // Check allowances for all tokens

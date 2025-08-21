@@ -2,6 +2,13 @@
 
 A comprehensive TypeScript SDK for interacting with Nad.fun ecosystem contracts, including bonding curves, DEX trading, and real-time event monitoring.
 
+## What's New in v0.2.3
+
+- 🎯 **Enhanced Token Operations**: New batch methods, burn functions, and token health checks
+- 🚀 **Improved Streaming**: WebSocket support for indexers and simplified APIs
+- 📊 **Better Performance**: Optimized code with reduced complexity
+- 🔧 **Cleaner Codebase**: Removed redundant code and improved maintainability
+
 ## Installation
 
 ```bash
@@ -185,7 +192,7 @@ const gasLimit = (estimatedGas * 120n) / 100n // Apply buffer
 
 ### 📊 Token Operations
 
-Interact with ERC-20 tokens and get metadata:
+Enhanced ERC-20 token interactions with advanced features:
 
 ```typescript
 import { Token } from '@nadfun/sdk'
@@ -193,15 +200,31 @@ import { Token } from '@nadfun/sdk'
 const tokenHelper = new Token(rpcUrl, privateKey)
 
 // Get token metadata
-const metadata = await tokenHelper.getTokenMetadata(token)
+const metadata = await tokenHelper.getMetadata(token)
 console.log(`Token: ${metadata.name} (${metadata.symbol})`)
 
 // Check balances and allowances
 const balance = await tokenHelper.getBalance(token, wallet)
-const allowance = await tokenHelper.getAllowance(token, owner, spender)
+const allowance = await tokenHelper.getAllowance(token, spender, owner)
 
 // Approve tokens
 const tx = await tokenHelper.approve(token, spender, amount)
+
+// New: Batch operations for efficiency
+const balances = await tokenHelper.batchGetBalances([token1, token2, token3])
+const metadata = await tokenHelper.batchGetMetadata([token1, token2])
+const allowances = await tokenHelper.batchGetAllowances(token, [spender1, spender2])
+
+// New: Token health check
+const health = await tokenHelper.getTokenHealth(token)
+console.log(`Is contract: ${health.isContract}, Has basic functions: ${health.hasBasicFunctions}`)
+
+// New: Burn tokens (ERC20Burnable)
+const burnTx = await tokenHelper.burn(token, amount)
+const burnFromTx = await tokenHelper.burnFrom(token, account, amount)
+
+// New: EIP-2612 Permit signatures
+const permitSig = await tokenHelper.generatePermitSignature(token, spender, value, deadline)
 ```
 
 ### 🔄 Real-time Event Streaming
@@ -255,24 +278,30 @@ const unsubscribe = await dexStream.subscribe(
 
 ### 📈 Historical Data Analysis
 
-Fetch and analyze historical events:
+Fetch and analyze historical events with WebSocket support:
 
 ```typescript
 import { CurveIndexer, CurveEventType } from '@nadfun/sdk'
-import { createPublicClient, http } from 'viem'
 
-const client = createPublicClient({
-  transport: http(httpUrl),
-})
-
-const indexer = new CurveIndexer(client)
+// Now supports both HTTP and WebSocket connections
+const indexer = new CurveIndexer('https://your-rpc-endpoint')
+// or
+const indexer = new CurveIndexer('wss://your-websocket-endpoint')
 
 // Fetch events from block range
 const events = await indexer.fetchEvents(
-  18_000_000n,
-  18_010_000n,
+  18_000_000,
+  18_000_100,
   [CurveEventType.Create, CurveEventType.Buy],
-  undefined // all tokens
+  ['0xToken1', '0xToken2'] // optional token filter
+)
+
+// Batch fetch with automatic pagination
+const allEvents = await indexer.fetchAllEvents(
+  startBlock,
+  2000, // batch size
+  [CurveEventType.Buy, CurveEventType.Sell],
+  tokenFilter
 )
 
 console.log(`Found ${events.length} events`)
@@ -280,33 +309,44 @@ console.log(`Found ${events.length} events`)
 
 ### 🔍 Pool Discovery
 
-Find Uniswap V3 pool addresses for tokens:
+Find Uniswap V3 pool addresses for tokens with simplified API:
 
 ```typescript
 import { DexIndexer } from '@nadfun/sdk'
 
-// Auto-discover pools for multiple tokens
-const indexer = await DexIndexer.discoverPoolsForTokens(client, tokens)
-const pools = indexer.poolAddresses
+// Auto-discover pools for multiple tokens (now with direct RPC URL)
+const indexer = await DexIndexer.discoverPoolsForTokens('https://your-rpc-endpoint', tokens)
 
 // Discover pool for single token
-const indexer2 = await DexIndexer.discoverPoolForToken(client, token)
+const indexer2 = await DexIndexer.discoverPoolForToken('https://your-rpc-endpoint', token)
+
+// Access discovered pools
+console.log(`Found ${indexer.poolAddresses.length} pools`)
 ```
 
 ### 💱 DEX Monitoring
 
-Monitor Uniswap V3 swap events:
+Monitor Uniswap V3 swap events with enhanced features:
 
 ```typescript
 import { DexIndexer } from '@nadfun/sdk'
 
-// Auto-discover pools for tokens
-const indexer = await DexIndexer.discoverPoolsForTokens(client, tokens)
+// Auto-discover pools for tokens with WebSocket support
+const indexer = await DexIndexer.discoverPoolsForTokens('wss://your-websocket-endpoint', tokens)
+
+// Fetch swap events with automatic batching
 const swaps = await indexer.fetchEvents(fromBlock, toBlock)
 
+// Process swaps with pool metadata
 for (const swap of swaps) {
-  console.log(`Swap in pool ${swap.poolMetadata.poolAddress}: ${swap.amount0} -> ${swap.amount1}`)
+  console.log(`Swap: ${swap.amount0} -> ${swap.amount1}`)
+  console.log(`Pool: ${swap.poolAddress}`)
+  console.log(`Sender: ${swap.sender}, Recipient: ${swap.recipient}`)
 }
+
+// Batch fetch all events
+const allSwaps = await indexer.fetchAllEvents(startBlock, 2000)
+console.log(`Total swaps: ${allSwaps.length}`)
 ```
 
 ## Examples

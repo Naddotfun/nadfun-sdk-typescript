@@ -13,6 +13,7 @@ import type { TokenMetadata } from '@/types'
 import type { PublicClient, WalletClient } from 'viem'
 import { CURRENT_CHAIN } from '@/constants'
 import { Hex } from 'viem'
+import tokenAbi from '@/abis/token'
 
 export class Token {
   public publicClient: PublicClient
@@ -191,66 +192,13 @@ export class Token {
   }
 
   /**
-   * Check if token supports permit (EIP-2612)
-   */
-  async hasPermit(token: Address): Promise<boolean> {
-    try {
-      // Try to call DOMAIN_SEPARATOR which is required for permit
-      await this.publicClient.readContract({
-        address: token,
-        abi: [
-          {
-            type: 'function',
-            name: 'DOMAIN_SEPARATOR',
-            inputs: [],
-            outputs: [{ name: '', type: 'bytes32' }],
-            stateMutability: 'view',
-          },
-        ],
-        functionName: 'DOMAIN_SEPARATOR',
-      })
-      return true
-    } catch {
-      return false
-    }
-  }
-
-  /**
-   * Get domain separator for permit signatures (EIP-2612)
-   */
-  async getDomainSeparator(token: Address): Promise<string> {
-    const domainSeparator = await this.publicClient.readContract({
-      address: token,
-      abi: [
-        {
-          type: 'function',
-          name: 'DOMAIN_SEPARATOR',
-          inputs: [],
-          outputs: [{ name: '', type: 'bytes32' }],
-          stateMutability: 'view',
-        },
-      ],
-      functionName: 'DOMAIN_SEPARATOR',
-    })
-    return domainSeparator as string
-  }
-
-  /**
    * Get nonce for permit signatures (EIP-2612)
    */
   async getNonce(token: Address, owner?: Address): Promise<bigint> {
     const ownerAddr = owner || this.account.address
     const nonce = await this.publicClient.readContract({
       address: token,
-      abi: [
-        {
-          type: 'function',
-          name: 'nonces',
-          inputs: [{ name: 'owner', type: 'address' }],
-          outputs: [{ name: '', type: 'uint256' }],
-          stateMutability: 'view',
-        },
-      ],
+      abi: tokenAbi,
       functionName: 'nonces',
       args: [ownerAddr],
     })
@@ -384,15 +332,7 @@ export class Token {
    */
   async burn(token: Address, amount: bigint, options?: { gasLimit?: bigint }): Promise<string> {
     const burnData = encodeFunctionData({
-      abi: [
-        {
-          type: 'function',
-          name: 'burn',
-          inputs: [{ name: 'amount', type: 'uint256' }],
-          outputs: [],
-          stateMutability: 'nonpayable',
-        },
-      ],
+      abi: tokenAbi,
       functionName: 'burn',
       args: [amount],
     })
@@ -427,18 +367,7 @@ export class Token {
     options?: { gasLimit?: bigint }
   ): Promise<string> {
     const burnFromData = encodeFunctionData({
-      abi: [
-        {
-          type: 'function',
-          name: 'burnFrom',
-          inputs: [
-            { name: 'account', type: 'address' },
-            { name: 'amount', type: 'uint256' },
-          ],
-          outputs: [],
-          stateMutability: 'nonpayable',
-        },
-      ],
+      abi: tokenAbi,
       functionName: 'burnFrom',
       args: [account, amount],
     })
@@ -595,12 +524,7 @@ export class Token {
   async getTokenHealth(token: Address): Promise<{
     isContract: boolean
     hasBasicFunctions: boolean
-    hasPermit: boolean
     metadata: TokenMetadata | null
-    permitSupport: {
-      domainSeparator?: string
-      currentNonce?: bigint
-    }
     error?: string
   }> {
     try {
@@ -609,54 +533,27 @@ export class Token {
         return {
           isContract: false,
           hasBasicFunctions: false,
-          hasPermit: false,
           metadata: null,
-          permitSupport: {},
           error: 'Address is not a contract',
         }
       }
 
       // Parallel checks for performance
-      const [metadataResult, permitResult] = await Promise.allSettled([
-        this.getMetadata(token),
-        this.hasPermit(token),
-      ])
+      const metadataResult = await this.getMetadata(token)
 
-      const hasBasicFunctions = metadataResult.status === 'fulfilled'
-      const metadata = metadataResult.status === 'fulfilled' ? metadataResult.value : null
-      const hasPermit = permitResult.status === 'fulfilled' ? permitResult.value : false
-
-      // Get permit-specific info if supported
-      let permitSupport = {}
-      if (hasPermit) {
-        try {
-          const [domainSeparator, currentNonce] = await Promise.all([
-            this.getDomainSeparator(token),
-            this.getNonce(token),
-          ])
-          permitSupport = {
-            domainSeparator,
-            currentNonce,
-          }
-        } catch {
-          // Ignore permit support details if failed
-        }
-      }
+      const hasBasicFunctions = true
+      const metadata = metadataResult
 
       return {
         isContract: true,
         hasBasicFunctions,
-        hasPermit,
         metadata,
-        permitSupport,
       }
     } catch (error: any) {
       return {
         isContract: false,
         hasBasicFunctions: false,
-        hasPermit: false,
         metadata: null,
-        permitSupport: {},
         error: error.message,
       }
     }

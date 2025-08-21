@@ -19,41 +19,22 @@ export class Stream {
   private maxReconnectAttempts: number = 5
   private reconnectDelay: number = 1000
 
-  constructor(client: PublicClient, poolAddresses: Address[]) {
-    this.client = client
-    this.poolAddresses = poolAddresses
-  }
-
-  /**
-   * Create a WebSocket-based stream for better real-time performance
-   */
-  static async createWebSocket(wsUrl: string, poolAddresses: Address[]): Promise<Stream> {
-    try {
+  constructor(rpcUrl: string, poolAddresses: Address[]) {
+    if (rpcUrl.startsWith('wss:')) {
       const client = createPublicClient({
         chain: CURRENT_CHAIN,
-        transport: webSocket(wsUrl),
+        transport: webSocket(rpcUrl),
       })
-      return new Stream(client, poolAddresses)
-    } catch (error) {
-      console.warn('WebSocket creation failed, falling back to HTTP:', error)
-      // Fallback to HTTP
+      this.client = client
+    } else {
       const client = createPublicClient({
         chain: CURRENT_CHAIN,
-        transport: http(wsUrl.replace('wss:', 'https:').replace('ws:', 'http:')),
+        transport: http(rpcUrl),
       })
-      return new Stream(client, poolAddresses)
+      this.client = client
     }
-  }
 
-  /**
-   * Create HTTP-based stream
-   */
-  static async createHttp(rpcUrl: string, poolAddresses: Address[]): Promise<Stream> {
-    const client = createPublicClient({
-      chain: CURRENT_CHAIN,
-      transport: http(rpcUrl),
-    })
-    return new Stream(client, poolAddresses)
+    this.poolAddresses = poolAddresses
   }
 
   /**
@@ -66,7 +47,7 @@ export class Stream {
     const poolAddresses: Address[] = await Stream.findPoolsForTokens(rpcUrl, tokenAddresses)
     console.log(`✅ Found ${poolAddresses.length} pools`)
 
-    return Stream.createHttp(rpcUrl, poolAddresses)
+    return new Stream(rpcUrl, poolAddresses)
   }
 
   /**
@@ -81,7 +62,7 @@ export class Stream {
     )
     console.log(`✅ Found ${poolAddresses.length} pools`)
 
-    return Stream.createWebSocket(wsUrl, poolAddresses)
+    return new Stream(wsUrl, poolAddresses)
   }
 
   /**

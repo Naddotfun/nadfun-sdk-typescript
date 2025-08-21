@@ -127,7 +127,7 @@ async function main() {
       }
 
       console.log('\n📊 Unique tokens found in batch processing:')
-      for (const token of batchUniqueTokens) {
+      for (const token of Array.from(batchUniqueTokens)) {
         console.log(`  ${token}`)
       }
 

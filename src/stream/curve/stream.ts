@@ -1,7 +1,7 @@
 import { CurveEventType, BondingCurveEvent } from '@/types'
 import { CONTRACTS, CURRENT_CHAIN } from '@/constants'
 import { parseBondingCurveEvent } from './parser'
-import { type PublicClient, type Log, createPublicClient, http } from 'viem'
+import { type PublicClient, type Log, createPublicClient, http, webSocket } from 'viem'
 
 /**
  * Bonding curve event stream with 2-stage filtering
@@ -20,28 +20,42 @@ export class Stream {
   private reconnectDelay: number = 1000
 
   constructor(rpcUrl: string) {
-    const client = createPublicClient({
-      chain: CURRENT_CHAIN,
-      transport: http(rpcUrl),
-    })
-    this.client = client
+    if (rpcUrl.startsWith('wss:')) {
+      const client = createPublicClient({
+        chain: CURRENT_CHAIN,
+        transport: webSocket(rpcUrl),
+      })
+      this.client = client
+    } else {
+      const client = createPublicClient({
+        chain: CURRENT_CHAIN,
+        transport: http(rpcUrl),
+      })
+      this.client = client
+    }
     this.bondingCurveAddress = CONTRACTS.MONAD_TESTNET.CURVE
-    // Default to all event types
-    this.eventTypes = [
-      CurveEventType.Create,
-      CurveEventType.Buy,
-      CurveEventType.Sell,
-      CurveEventType.Sync,
-      CurveEventType.Lock,
-      CurveEventType.Listed,
-    ]
+
+    this.eventTypes = []
   }
 
   /**
    * Subscribe to specific event types (network-level filtering)
+   * If empty array is passed, subscribes to all event types
    */
   subscribeEvents(eventTypes: CurveEventType[]): Stream {
-    this.eventTypes = eventTypes
+    if (eventTypes.length === 0) {
+      // Empty array means subscribe to all events
+      this.eventTypes = [
+        CurveEventType.Create,
+        CurveEventType.Buy,
+        CurveEventType.Sell,
+        CurveEventType.Sync,
+        CurveEventType.Lock,
+        CurveEventType.Listed,
+      ]
+    } else {
+      this.eventTypes = eventTypes
+    }
     return this
   }
 
@@ -85,6 +99,14 @@ export class Stream {
 
     this.isRunning = true
     this.reconnectAttempts = 0
+
+    // Check if event types are set
+    if (this.eventTypes.length === 0) {
+      console.warn(
+        '⚠️ No event types specified. Call subscribeEvents() first or pass empty array to subscribe to all events.'
+      )
+      return
+    }
 
     console.log(`🎯 Starting bonding curve stream`)
     console.log(`📍 Bonding curve address: ${this.bondingCurveAddress}`)
