@@ -46,7 +46,7 @@ async function executeSellExample() {
     const token = new Token(RPC_URL, PRIVATE_KEY)
 
     console.log('📋 Configuration:')
-    console.log(`   Wallet: ${trade.address}`)
+    console.log(`   Wallet: ${trade.account.address}`)
     console.log(`   Token: ${TOKEN_ADDRESS}`)
     console.log(`   Amount: ${formatUnits(AMOUNT_TOKENS, 18)}`)
     console.log(`   Slippage: ${SLIPPAGE_PERCENT}%`)
@@ -102,12 +102,12 @@ async function executeSellExample() {
     console.log('💸 Executing sell...')
     const sellParams = {
       token: TOKEN_ADDRESS as `0x${string}`,
-      to: trade.address as `0x${string}`,
+      to: trade.account.address as `0x${string}`,
       amountIn: AMOUNT_TOKENS,
       amountOutMin: minMON,
     }
 
-    const sellTx = await trade.sell(sellParams, quote.router, { routerType })
+    const sellTx = await trade.sell(sellParams, quote.router)
 
     console.log('✅ Transaction successful!')
     console.log(`   Hash: ${sellTx}`)

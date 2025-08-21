@@ -22,7 +22,8 @@ export type { TokenMetadata, TokenHealth, PermitSignature } from './token'
 
 // Bonding curve types
 export type {
-  CurveData,
+  CurveState,
+  AvailableBuyTokens,
   CreateEvent,
   BuyEvent,
   SellEvent,

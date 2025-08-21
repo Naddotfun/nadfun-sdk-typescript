@@ -4,21 +4,24 @@ import type {
   BuyParams,
   SellParams,
   QuoteResult,
-  CurveData,
+  CurveState,
   SellPermitParams,
   GasEstimationParams,
+  AvailableBuyTokens,
 } from '@/types'
 
 import { createPublicClient, createWalletClient, http, getContract, encodeFunctionData } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
-import { CONTRACTS, CURRENT_CHAIN, DEFAULT_DEADLINE_SECONDS } from '@/constants'
-import { curveAbi, lensAbi, routerAbi } from '@/abis'
+import { CONTRACTS, CURRENT_CHAIN } from '@/constants'
+import { bondingCurveRouterAbi, curveAbi, dexRouterAbi, lensAbi, routerAbi } from '@/abis'
 
 import { estimateGas as standaloneEstimateGas } from '@/trading/gas'
 
 export class Trade {
   public lens: GetContractReturnType<typeof lensAbi, PublicClient, Address>
   public curve: GetContractReturnType<typeof curveAbi, PublicClient, Address>
+  public curveRouter: GetContractReturnType<typeof bondingCurveRouterAbi, PublicClient, Address>
+  public dexRouter: GetContractReturnType<typeof dexRouterAbi, PublicClient, Address>
   public publicClient: PublicClient
   public walletClient: WalletClient
   public account: PrivateKeyAccount
@@ -49,6 +52,24 @@ export class Trade {
     this.curve = getContract({
       address: CONTRACTS.MONAD_TESTNET.CURVE,
       abi: curveAbi,
+      client: {
+        public: this.publicClient,
+        wallet: this.walletClient,
+      },
+    })
+
+    this.curveRouter = getContract({
+      address: CONTRACTS.MONAD_TESTNET.BONDING_CURVE_ROUTER,
+      abi: bondingCurveRouterAbi,
+      client: {
+        public: this.publicClient,
+        wallet: this.walletClient,
+      },
+    })
+
+    this.dexRouter = getContract({
+      address: CONTRACTS.MONAD_TESTNET.DEX_ROUTER,
+      abi: dexRouterAbi,
       client: {
         public: this.publicClient,
         wallet: this.walletClient,
@@ -92,42 +113,19 @@ export class Trade {
   //////////////////TRADE FUNCTIONS///////////////////////////
   ///////////////////////////////////////////////////////////
 
-  async buy(
-    params: BuyParams,
-    router: Address,
-    options?: {
-      routerType?: 'bonding' | 'dex'
-      nonce?: number
-      /** Buffer percentage for gas estimation (e.g., 20 for 20% buffer) */
-      gasBufferPercent?: number
-    }
-  ): Promise<string> {
-    const deadline = params.deadline ?? Math.floor(Date.now() / 1000) + DEFAULT_DEADLINE_SECONDS
-
-    const buyParams = {
+  async buy(params: BuyParams, router: Address): Promise<string> {
+    const buyDataParams = {
       amountOutMin: params.amountOutMin,
       token: params.token,
       to: params.to,
-      deadline: deadline,
+      deadline: params.deadline
+        ? BigInt(params.deadline)
+        : BigInt(Math.floor(Date.now() / 1000) + 3600),
     }
-
     const callData = encodeFunctionData({
       abi: routerAbi,
       functionName: 'buy',
-      args: [buyParams],
-    })
-
-    const estimationParams: GasEstimationParams = {
-      type: 'Buy',
-      token: params.token,
-      amountIn: params.amountIn,
-      amountOutMin: params.amountOutMin,
-      to: params.to,
-      deadline: BigInt(deadline),
-    }
-
-    const gas = await this.estimateGas(router, estimationParams, {
-      bufferPercent: options?.gasBufferPercent,
+      args: [buyDataParams],
     })
 
     const tx = await this.walletClient.sendTransaction({
@@ -135,8 +133,9 @@ export class Trade {
       to: router,
       data: callData,
       value: params.amountIn,
-      gas: gas,
-      nonce: options?.nonce,
+      gas: params.gasLimit,
+      gasPrice: params.gasPrice,
+      nonce: params.nonce,
       chain: CURRENT_CHAIN,
     })
 
@@ -147,52 +146,28 @@ export class Trade {
    * Pure sell function - executes sell without checking allowance
    * Faster execution for bots and advanced users who manage approvals separately
    */
-  async sell(
-    params: SellParams,
-    router: Address,
-    options?: {
-      routerType?: 'bonding' | 'dex'
-      nonce?: number
-
-      /** Buffer percentage for gas estimation (e.g., 20 for 20% buffer) */
-      gasBufferPercent?: number
-    }
-  ): Promise<string> {
-    const deadline = params.deadline ?? Math.floor(Date.now() / 1000) + DEFAULT_DEADLINE_SECONDS
-
-    const sellParams = {
+  async sell(params: SellParams, router: Address): Promise<string> {
+    const sellDataParams = {
       amountIn: params.amountIn,
       amountOutMin: params.amountOutMin,
       token: params.token,
       to: params.to,
-      deadline: deadline,
+      deadline: BigInt(params.deadline),
     }
 
     const sellData = encodeFunctionData({
       abi: routerAbi,
       functionName: 'sell',
-      args: [sellParams],
-    })
-
-    const estimationParams: GasEstimationParams = {
-      type: 'Sell',
-      token: params.token,
-      amountIn: params.amountIn,
-      amountOutMin: params.amountOutMin,
-      to: params.to,
-      deadline: BigInt(deadline),
-    }
-
-    const gas = await this.estimateGas(router, estimationParams, {
-      bufferPercent: options?.gasBufferPercent,
+      args: [sellDataParams],
     })
 
     const tx = await this.walletClient.sendTransaction({
       account: this.account,
       to: router,
       data: sellData,
-      gas: gas,
-      nonce: options?.nonce,
+      gas: params.gasLimit,
+      gasPrice: params.gasPrice,
+      nonce: params.nonce,
       chain: CURRENT_CHAIN,
     })
 
@@ -203,92 +178,87 @@ export class Trade {
    * Sell with permit - optimized for speed
    * If permitNonce is provided, skips nonce reading (faster for bots)
    */
-  async sellPermit(
-    params: SellPermitParams,
-    router: Address,
-    options?: {
-      routerType?: 'bonding' | 'dex'
-      nonce?: number
-      gasBufferPercent?: number
-    }
-  ): Promise<string> {
-    const deadline = params.deadline ?? Math.floor(Date.now() / 1000) + DEFAULT_DEADLINE_SECONDS
-
-    const sellPermitParams = {
+  async sellPermit(params: SellPermitParams, router: Address): Promise<string> {
+    const sellPermitDataParams = {
       amountIn: params.amountIn,
       amountOutMin: params.amountOutMin,
       amountAllowance: params.amountAllowance,
       token: params.token,
       to: params.to,
-      deadline: deadline,
+      deadline: BigInt(params.deadline),
       v: params.v,
       r: params.r,
       s: params.s,
     }
-
     const sellPermitData = encodeFunctionData({
       abi: routerAbi,
       functionName: 'sellPermit',
-      args: [sellPermitParams],
-    })
-
-    const estimationParams: GasEstimationParams = {
-      type: 'SellPermit',
-      token: params.token,
-      amountIn: params.amountIn,
-      amountOutMin: params.amountOutMin,
-      to: params.to,
-      deadline: BigInt(deadline),
-      v: params.v,
-      r: params.r,
-      s: params.s,
-    }
-
-    const gas = await this.estimateGas(router, estimationParams, {
-      bufferPercent: options?.gasBufferPercent,
+      args: [sellPermitDataParams],
     })
 
     const tx = await this.walletClient.sendTransaction({
       account: this.account,
       to: router,
       data: sellPermitData,
-      gas: gas,
-      nonce: options?.nonce,
+      gas: params.gasLimit,
+      gasPrice: params.gasPrice,
+      nonce: params.nonce,
       chain: CURRENT_CHAIN,
     })
 
     return tx
   }
 
+  async getAvailableBuyTokens(token: Address): Promise<AvailableBuyTokens> {
+    const [availableBuyToken, requiredMonAmount] = (await this.curveRouter.read.availableBuyTokens([
+      token,
+    ])) as [bigint, bigint]
+
+    return {
+      availableBuyToken,
+      requiredMonAmount,
+    }
+  }
+
+  async getCurveState(token: Address): Promise<CurveState> {
+    const [
+      realMonReserve,
+      realTokenReserve,
+      virtualMonReserve,
+      virtualTokenReserve,
+      k,
+      targetTokenAmount,
+      initVirtualMonReserve,
+      initVirtualTokenReserve,
+    ] = (await this.curve.read.curves([token])) as [
+      bigint,
+      bigint,
+      bigint,
+      bigint,
+      bigint,
+      bigint,
+      bigint,
+      bigint,
+    ]
+
+    return {
+      realMonReserve,
+      realTokenReserve,
+      virtualMonReserve,
+      virtualTokenReserve,
+      k,
+      targetTokenAmount,
+      initVirtualMonReserve,
+      initVirtualTokenReserve,
+    }
+  }
+
   async isListed(token: Address): Promise<boolean> {
     return (await this.curve.read.isListed([token])) as boolean
   }
 
-  async getCurves(token: Address): Promise<CurveData> {
-    const data = (await this.curve.read.curves([token])) as [
-      bigint,
-      bigint,
-      bigint,
-      bigint,
-      bigint,
-      bigint,
-      bigint,
-      boolean,
-    ]
-    return {
-      reserveMON: data[0],
-      reserveToken: data[1],
-      k: data[2],
-      tokenSupply: data[3],
-      virtualMON: data[4],
-      virtualToken: data[5],
-      fee: data[6],
-      listed: data[7],
-    }
-  }
-
-  get address(): string {
-    return this.account.address
+  async isLocked(token: Address): Promise<boolean> {
+    return (await this.curve.read.isLocked([token])) as boolean
   }
 
   /**
@@ -314,21 +284,8 @@ export class Trade {
    * const gasWithBuffer = (estimatedGas * 120n) / 100n // Add 20% buffer
    * ```
    */
-  async estimateGas(
-    routerAddress: Address,
-    params: GasEstimationParams,
-    options?: {
-      /** Add a percentage buffer to the estimated gas (default: 0) */
-      bufferPercent?: number
-    }
-  ): Promise<bigint> {
+  async estimateGas(routerAddress: Address, params: GasEstimationParams): Promise<bigint> {
     const estimatedGas = await standaloneEstimateGas(this.publicClient, routerAddress, params)
-
-    // Apply buffer if specified
-    if (options?.bufferPercent && options.bufferPercent > 0) {
-      const bufferMultiplier = BigInt(100 + options.bufferPercent)
-      return (estimatedGas * bufferMultiplier) / 100n
-    }
 
     return estimatedGas
   }

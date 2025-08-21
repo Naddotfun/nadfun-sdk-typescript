@@ -7,25 +7,23 @@ import { Address } from 'viem'
 
 /**
  * Bonding curve data structure
- * Used by: Trade.getCurves()
+ * Used by: Trade.getCurveState()
  */
-export interface CurveData {
-  /** Current MON reserves in the curve */
-  reserveMON: bigint
-  /** Current token reserves in the curve */
-  reserveToken: bigint
-  /** Bonding curve constant k value */
+export interface CurveState {
+  realMonReserve: bigint
+  realTokenReserve: bigint
+  virtualMonReserve: bigint
+  virtualTokenReserve: bigint
   k: bigint
-  /** Current token supply */
-  tokenSupply: bigint
-  /** Virtual MON reserves for pricing */
-  virtualMON: bigint
-  /** Virtual token reserves for pricing */
-  virtualToken: bigint
-  /** Trading fee (in basis points) */
-  fee: bigint
-  /** Whether token is listed on DEX */
-  listed: boolean
+  targetTokenAmount: bigint
+  initVirtualMonReserve: bigint
+  initVirtualTokenReserve: bigint
+}
+
+//availableBuyTokens
+export interface AvailableBuyTokens {
+  availableBuyToken: bigint
+  requiredMonAmount: bigint
 }
 
 /**

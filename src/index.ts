@@ -9,7 +9,6 @@ export type {
   SellParams,
   SellPermitParams,
   QuoteResult,
-  GasConfig,
   GasEstimationParams,
   RouterConfig,
   // Token types
@@ -17,7 +16,8 @@ export type {
   TokenHealth,
   PermitSignature,
   // Curve types
-  CurveData,
+  CurveState,
+  AvailableBuyTokens,
   BondingCurveEvent,
   CreateEvent,
   BuyEvent,
@@ -48,13 +48,7 @@ export {
 } from './trading/slippage'
 
 // Gas estimation utils
-export {
-  estimateGas,
-  estimateBuyGas,
-  estimateSellGas,
-  estimateSellPermitGas,
-  getRouterConfig,
-} from './trading/gas'
+export { estimateGas, estimateBuyGas, estimateSellGas, estimateSellPermitGas } from './trading/gas'
 
 // Constants
 export { CONTRACTS, CHAIN_ID, DEFAULT_DEADLINE_SECONDS } from './constants'

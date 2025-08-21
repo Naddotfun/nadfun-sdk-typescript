@@ -35,7 +35,13 @@ export interface BuyParams {
   /** Minimum amount of tokens to receive (slippage protection) */
   amountOutMin: bigint
   /** Transaction deadline (unix timestamp, optional) */
-  deadline?: number
+  deadline: number
+  /** Transaction deadline (unix timestamp, optional) */
+  gasLimit?: bigint
+  /** Gas price for the transaction */
+  gasPrice?: bigint
+  /** Nonce for the transaction */
+  nonce?: number
 }
 
 /**
@@ -52,7 +58,13 @@ export interface SellParams {
   /** Minimum amount of MON to receive (slippage protection) */
   amountOutMin: bigint
   /** Transaction deadline (unix timestamp, optional) */
-  deadline?: number
+  deadline: number
+  /** Gas limit for the transaction */
+  gasLimit?: bigint
+  /** Gas price for the transaction */
+  gasPrice?: bigint
+  /** Nonce for the transaction */
+  nonce?: number
 }
 
 /**
@@ -66,6 +78,7 @@ export interface SellPermitParams extends SellParams {
   v: number
   r: `0x${string}`
   s: `0x${string}`
+  nonce?: number
 }
 
 /**
@@ -77,31 +90,6 @@ export interface QuoteResult {
   router: Address
   /** Calculated amount for the trade */
   amount: bigint
-}
-
-/**
- * Gas configuration for Trade operations
- * Used by: Trade constructor, Trade.updateGasConfig()
- */
-export interface GasConfig {
-  /** Gas limits for bonding curve router operations */
-  bondingRouter?: {
-    /** Gas limit for buy operations */
-    buy?: bigint
-    /** Gas limit for sell operations */
-    sell?: bigint
-    /** Gas limit for sell with permit operations */
-    sellPermit?: bigint
-  }
-  /** Gas limits for DEX router operations */
-  dexRouter?: {
-    /** Gas limit for buy operations */
-    buy?: bigint
-    /** Gas limit for sell operations */
-    sell?: bigint
-    /** Gas limit for sell with permit operations */
-    sellPermit?: bigint
-  }
 }
 
 /**
@@ -129,6 +117,7 @@ export type GasEstimationParams =
       token: Address
       amountIn: bigint
       amountOutMin: bigint
+      amountAllowance: bigint
       to: Address
       deadline: bigint
       v: number

@@ -45,7 +45,7 @@ async function main() {
   const trade = new Trade(config.rpcUrl, config.privateKey)
   const tokenHelper = new Token(config.rpcUrl, config.privateKey)
   const token = config.token
-  const wallet = trade.address as Address
+  const wallet = trade.account.address as Address
 
   console.log(`🔍 Wallet: ${wallet}`)
   console.log(`🪙 Token: ${token}`)
@@ -131,7 +131,7 @@ async function main() {
     console.log(`⚠️ Could not get sell quote: ${error}`)
     // Use buy router as fallback
     sellRouter = router
-    expectedMon = BigInt(1000000) // 1 wei as fallback
+    expectedMon = BigInt(1) // 1 wei as fallback
   }
 
   // Check allowance for the router
@@ -196,13 +196,13 @@ async function main() {
   let v: number
   let r: `0x${string}`
   let s: `0x${string}`
+
   try {
     const signature = await tokenHelper.generatePermitSignature(
       token,
       sellRouter as `0x${string}`,
       actualSellAmount,
-      deadline,
-      wallet
+      deadline
     )
     v = signature.v
     r = signature.r as `0x${string}`
@@ -220,13 +220,16 @@ async function main() {
     type: 'SellPermit',
     token,
     amountIn: actualSellAmount,
-    amountOutMin: BigInt(1), // Use very low minimum to avoid revert
+    amountOutMin: BigInt(2), // Use very low minimum to avoid revert
+    amountAllowance: actualSellAmount, // Must match the amount used in permit signature
     to: wallet,
     deadline,
     v,
     r,
     s,
   }
+
+  console.log('🔍 SELL PERMIT PARAMS:')
 
   let sellPermitGas = BigInt(0)
   try {

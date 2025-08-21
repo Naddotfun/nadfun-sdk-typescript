@@ -1,34 +1,11 @@
 import type { Address, PublicClient } from 'viem'
-import { encodeFunctionData, maxUint256 } from 'viem'
+import { encodeFunctionData } from 'viem'
 import { routerAbi } from '@/abis'
-import { CONTRACTS } from '@/constants'
-import { RouterType } from '@/types'
-import type { GasEstimationParams, RouterConfig } from '@/types'
+import type { GasEstimationParams } from '@/types'
 
 /**
  * Router configuration mapping
  */
-export function getRouterConfig(routerAddress: Address): RouterConfig {
-  const bondingCurveRouter = CONTRACTS.MONAD_TESTNET.BONDING_CURVE_ROUTER.toLowerCase()
-  const dexRouter = CONTRACTS.MONAD_TESTNET.DEX_ROUTER.toLowerCase()
-
-  if (routerAddress.toLowerCase() === bondingCurveRouter) {
-    return {
-      address: routerAddress,
-      type: RouterType.BondingCurve,
-    }
-  } else if (routerAddress.toLowerCase() === dexRouter) {
-    return {
-      address: routerAddress,
-      type: RouterType.Dex,
-    }
-  }
-
-  return {
-    address: routerAddress,
-    type: RouterType.Dex,
-  }
-}
 
 /**
  * Estimate gas for any trading operation
@@ -57,13 +34,11 @@ export async function estimateGas(
   routerAddress: Address,
   params: GasEstimationParams
 ): Promise<bigint> {
-  const routerConfig = getRouterConfig(routerAddress)
-
   switch (params.type) {
     case 'Buy':
       return estimateBuyGas(
         publicClient,
-        routerConfig,
+        routerAddress,
         params.token,
         params.amountIn,
         params.amountOutMin,
@@ -74,7 +49,7 @@ export async function estimateGas(
     case 'Sell':
       return estimateSellGas(
         publicClient,
-        routerConfig,
+        routerAddress,
         params.token,
         params.amountIn,
         params.amountOutMin,
@@ -85,10 +60,11 @@ export async function estimateGas(
     case 'SellPermit':
       return estimateSellPermitGas(
         publicClient,
-        routerConfig,
+        routerAddress,
         params.token,
         params.amountIn,
         params.amountOutMin,
+        params.amountAllowance,
         params.to,
         params.deadline,
         params.v,
@@ -103,7 +79,7 @@ export async function estimateGas(
  */
 export async function estimateBuyGas(
   publicClient: PublicClient,
-  routerConfig: RouterConfig,
+  routerAddress: Address,
   token: Address,
   amountIn: bigint,
   amountOutMin: bigint,
@@ -125,7 +101,7 @@ export async function estimateBuyGas(
 
   try {
     const gas = await publicClient.estimateGas({
-      to: routerConfig.address,
+      to: routerAddress,
       account: to,
       value: amountIn,
       data: callData,
@@ -144,7 +120,7 @@ export async function estimateBuyGas(
  */
 export async function estimateSellGas(
   publicClient: PublicClient,
-  routerConfig: RouterConfig,
+  routerAddress: Address,
   token: Address,
   amountIn: bigint,
   amountOutMin: bigint,
@@ -167,7 +143,7 @@ export async function estimateSellGas(
 
   try {
     const gas = await publicClient.estimateGas({
-      to: routerConfig.address,
+      to: routerAddress,
       account: to,
       data: callData,
     })
@@ -185,10 +161,11 @@ export async function estimateSellGas(
  */
 export async function estimateSellPermitGas(
   publicClient: PublicClient,
-  routerConfig: RouterConfig,
+  routerAddress: Address,
   token: Address,
   amountIn: bigint,
   amountOutMin: bigint,
+  amountAllowance: bigint,
   to: Address,
   deadline: bigint,
   v: number,
@@ -198,7 +175,7 @@ export async function estimateSellPermitGas(
   const contractParams = {
     amountIn,
     amountOutMin,
-    amountAllowance: maxUint256,
+    amountAllowance,
     token,
     to,
     deadline,
@@ -215,7 +192,7 @@ export async function estimateSellPermitGas(
 
   try {
     const gas = await publicClient.estimateGas({
-      to: routerConfig.address,
+      to: routerAddress,
       account: to,
       data: callData,
     })

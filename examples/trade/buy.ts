@@ -44,7 +44,7 @@ async function executeBuyExample() {
     const trade = new Trade(RPC_URL, PRIVATE_KEY)
 
     console.log('📋 Configuration:')
-    console.log(`   Wallet: ${trade.address}`)
+    console.log(`   Wallet: ${trade.account.address}`)
     console.log(`   Token: ${TOKEN_ADDRESS}`)
     console.log(`   Amount: ${formatUnits(AMOUNT_MON, 18)} MON`)
     console.log(`   Slippage: ${SLIPPAGE_PERCENT}%`)
@@ -52,7 +52,7 @@ async function executeBuyExample() {
 
     // Check balance
     const monBalance = await trade.publicClient.getBalance({
-      address: trade.address as `0x${string}`,
+      address: trade.account.address as `0x${string}`,
     })
     console.log(`💰 Balance: ${formatUnits(monBalance, 18)} MON`)
 
@@ -81,17 +81,12 @@ async function executeBuyExample() {
     console.log('🛒 Executing buy...')
     const buyParams = {
       token: TOKEN_ADDRESS as `0x${string}`,
-      to: trade.address as `0x${string}`,
+      to: trade.account.address as `0x${string}`,
       amountIn: AMOUNT_MON,
       amountOutMin: minTokens,
     }
 
-    const gasBufferPercent = 20
-
-    const txHash = await trade.buy(buyParams, quote.router, {
-      routerType,
-      gasBufferPercent,
-    })
+    const txHash = await trade.buy(buyParams, quote.router)
 
     console.log('✅ Transaction successful!')
     console.log(`   Hash: ${txHash}`)

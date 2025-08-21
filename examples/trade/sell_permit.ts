@@ -46,7 +46,7 @@ async function executeSellPermitExample() {
     const token = new Token(RPC_URL, PRIVATE_KEY)
 
     console.log('📋 Configuration:')
-    console.log(`   Wallet: ${trade.address}`)
+    console.log(`   Wallet: ${trade.account.address}`)
     console.log(`   Token: ${TOKEN_ADDRESS}`)
     console.log(`   Amount: ${formatUnits(AMOUNT_TOKENS, 18)}`)
     console.log(`   Slippage: ${SLIPPAGE_PERCENT}%`)
@@ -92,7 +92,7 @@ async function executeSellPermitExample() {
 
     const sellPermitParams = {
       token: TOKEN_ADDRESS as `0x${string}`,
-      to: trade.address as `0x${string}`,
+      to: trade.account.address as `0x${string}`,
       amountIn: AMOUNT_TOKENS,
       amountOutMin: minMON,
       amountAllowance: AMOUNT_TOKENS,
@@ -102,12 +102,7 @@ async function executeSellPermitExample() {
       s: signature.s,
     }
 
-    const gasBufferPercent = 20
-
-    const permitSellTx = await trade.sellPermit(sellPermitParams, quote.router, {
-      routerType,
-      gasBufferPercent,
-    })
+    const permitSellTx = await trade.sellPermit(sellPermitParams, quote.router)
 
     console.log('✅ Transaction successful!')
     console.log(`   Hash: ${permitSellTx}`)
