@@ -1,7 +1,7 @@
 import { CurveEventType, BondingCurveEvent } from '@/types'
-import { CONTRACTS } from '@/constants'
+import { CONTRACTS, CURRENT_CHAIN } from '@/constants'
 import { parseBondingCurveEvent } from './parser'
-import type { PublicClient, Log } from 'viem'
+import { type PublicClient, type Log, createPublicClient, http } from 'viem'
 
 /**
  * Bonding curve event stream with 2-stage filtering
@@ -19,7 +19,11 @@ export class Stream {
   private maxReconnectAttempts: number = 5
   private reconnectDelay: number = 1000
 
-  constructor(client: PublicClient) {
+  constructor(rpcUrl: string) {
+    const client = createPublicClient({
+      chain: CURRENT_CHAIN,
+      transport: http(rpcUrl),
+    })
     this.client = client
     this.bondingCurveAddress = CONTRACTS.MONAD_TESTNET.CURVE
     // Default to all event types
@@ -83,7 +87,7 @@ export class Stream {
     this.reconnectAttempts = 0
 
     console.log(`🎯 Starting bonding curve stream`)
-    console.log(`📍 Router address: ${this.bondingCurveAddress}`)
+    console.log(`📍 Bonding curve address: ${this.bondingCurveAddress}`)
     console.log(`📋 Event types: ${this.eventTypes.join(', ')}`)
     console.log(`📡 Using ${this.client.transport.type || 'unknown'} transport`)
     if (this.tokenFilter) {
@@ -140,25 +144,17 @@ export class Stream {
 
         if (event) {
           // Apply event type filter
-          if (!this.eventTypes.includes(event.type as CurveEventType)) {
-            continue
-          }
-
-          // Apply token filter if specified
-          const token = event.token.toLowerCase()
-          if (this.tokenFilter && !this.tokenFilter.has(token)) {
-            continue
-          }
-
-          // Notify all listeners
-          for (const callback of Array.from(this.listeners.values())) {
-            try {
-              callback(event)
-            } catch (error) {
-              console.error('❌ Error in bonding curve event listener:', error)
+          if (this.eventTypes.includes(event.type as CurveEventType)) {
+            // Apply token filter if set
+            if (this.tokenFilter && this.tokenFilter.size > 0) {
+              if (!this.tokenFilter.has(event.token.toLowerCase())) {
+                continue
+              }
             }
-          }
 
+            // Notify all listeners
+            this.listeners.forEach(callback => callback(event))
+          }
           // Reset reconnect attempts on successful event processing
           this.reconnectAttempts = 0
         }

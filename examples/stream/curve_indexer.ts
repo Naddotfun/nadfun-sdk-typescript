@@ -1,21 +1,26 @@
 /**
- * Bonding Curve Event Indexing Example
+ * Bonding curve historical indexing example
  *
- * Historical bonding curve event analysis with batch processing.
- * Fetches and analyzes Create, Buy, Sell, Sync, Lock, and Listed events.
+ * Shows how to:
+ * 1. Create curve indexer with HTTP provider
+ * 2. Fetch bonding curve events from specific block ranges
+ * 3. Filter by event types (Create, Buy, Sell) and tokens
+ * 4. Handle large data sets with batching
  *
  * Usage:
+ * # Use environment variables
+ * export RPC_URL="https://your-rpc-url"
  * bun run example:curve-indexer
- * bun run example:curve-indexer -- --tokens 0xToken1,0xToken2
- * bun run example:curve-indexer -- --from-block 1000000 --to-block 1010000
+ *
+ * # Or use CLI arguments
+ * bun run example:curve-indexer -- --rpc-url https://your-rpc-url --tokens 0xToken1,0xToken2
  */
 
 import { config } from 'dotenv'
 import { monadTestnet } from 'viem/chains'
 import { Indexer as CurveIndexer } from '../../src/stream/curve/indexer'
-import { CurveEventType, BondingCurveEvent } from '../../src/types'
+import { CurveEventType } from '../../src/types'
 import { parseArgs } from 'util'
-import { getBlockNumber } from 'viem/actions'
 
 // Load environment variables
 config()
@@ -25,244 +30,143 @@ const { values: args } = parseArgs({
   args: process.argv.slice(2),
   options: {
     'rpc-url': { type: 'string' },
-    token: { type: 'string' },
     tokens: { type: 'string' },
-    'from-block': { type: 'string' },
-    'to-block': { type: 'string' },
-    events: { type: 'string' },
   },
   allowPositionals: false,
 })
 
 // Configuration
 const RPC_URL = args['rpc-url'] || process.env.RPC_URL || monadTestnet.rpcUrls.default.http[0]
-const TOKEN_FILTER = process.env.TOKENS
-  ? process.env.TOKENS.split(',').map(t => t.trim())
-  : args['tokens']?.split(',').map(t => t.trim()) || []
+const TOKENS =
+  args['tokens']?.split(',').map(t => t.trim()) ||
+  process.env.TOKENS?.split(',').map(t => t.trim()) ||
+  []
 
-const EVENT_FILTER = args['events']?.split(',').map(e => e.trim() as CurveEventType) || [
-  CurveEventType.Buy,
-  CurveEventType.Sell,
-]
+async function main() {
+  // Print configuration
+  console.log('📋 Configuration:')
+  console.log(`   RPC URL: ${RPC_URL}`)
+  if (TOKENS.length > 0) {
+    console.log(`   Tokens: ${TOKENS.join(', ')}`)
+  }
+  console.log('')
 
-async function executeCurveIndexing() {
-  console.log('📊 NADS Fun SDK - Bonding Curve Event Indexer\n')
+  console.log('📈 Historical Event Fetching\n')
 
   try {
-    // Initialize indexer with just RPC URL - much simpler!
+    // 1. Create HTTP provider and indexer
     const indexer = new CurveIndexer(RPC_URL)
 
-    // Use recent blocks that are more likely to have events
-    let FROM_BLOCK: number
-    let TO_BLOCK: number
-    if (args['from-block'] && args['to-block']) {
-      FROM_BLOCK = Number(args['from-block'])
-      TO_BLOCK = Number(args['to-block'])
-    } else {
-      const currentBlock = await getBlockNumber(indexer.publicClient) // Approximate recent block
-      FROM_BLOCK = Number(args['from-block'] || (Number(currentBlock) - 100).toString())
-      TO_BLOCK = Number(args['to-block'] || currentBlock.toString())
-    }
+    // 2. Fetch events from specific block range (wider range to find events)
+    const currentBlock = Number(await indexer.publicClient.getBlockNumber())
 
-    console.log('📋 Indexing Configuration:')
-    console.log(`   RPC URL: ${RPC_URL}`)
-    console.log(`   Block range: ${FROM_BLOCK} → ${TO_BLOCK}`)
-    console.log(
-      `   Token filter: ${TOKEN_FILTER.length > 0 ? TOKEN_FILTER.join(', ') : 'All tokens'}`
-    )
-    console.log(`   Event filter: ${EVENT_FILTER.join(', ')}`)
-    console.log('')
-
-    // === Step 1: Fetch Events ===
-    console.log('📚 Fetching Historical Events...')
-    console.log(`   Block range: ${FROM_BLOCK} to ${TO_BLOCK}`)
-    console.log('   This may take a moment for large ranges...')
-    console.log('')
-
-    const startTime = Date.now()
-
-    // Use fetchEvents for specific range or fetchAllEvents for batching
-    let events: BondingCurveEvent[]
-    if (TO_BLOCK - FROM_BLOCK > 10000) {
-      // Use batching for large ranges
-      events = await indexer.fetchAllEvents(FROM_BLOCK, 1000, EVENT_FILTER, TOKEN_FILTER)
-    } else {
-      // Direct fetch for smaller ranges
-      events = await indexer.fetchEvents(FROM_BLOCK, TO_BLOCK, EVENT_FILTER, TOKEN_FILTER)
-    }
-
-    console.log(events, 'events')
-
-    const fetchTime = Date.now() - startTime
-
-    console.log(`✅ Fetched ${events.length} events in ${fetchTime}ms`)
-    console.log('')
-
-    // === Step 3: Event Analysis ===
-    if (events.length === 0) {
-      console.log('ℹ️  No events found in the specified range')
-      console.log('   Try expanding the block range or removing filters')
-      return
-    }
-
-    console.log('📊 Event Analysis:')
-
-    // Count by event type
-    const eventCounts = events.reduce(
-      (acc, event) => {
-        acc[event.type] = (acc[event.type] || 0) + 1
-        return acc
-      },
-      {} as Record<string, number>
+    const events = await indexer.fetchEvents(
+      currentBlock - 100, // from_block (wider range)
+      currentBlock, // to_block
+      [CurveEventType.Create, CurveEventType.Buy, CurveEventType.Sell], // event types
+      undefined // token_filter (undefined = all tokens)
     )
 
-    console.log('\n   📈 Event Distribution:')
-    Object.entries(eventCounts).forEach(([type, count]) => {
-      const percentage = ((count / events.length) * 100).toFixed(1)
-      console.log(`     ${type}: ${count} events (${percentage}%)`)
-    })
+    console.log(`✅ Found ${events.length} events`)
 
-    // Unique tokens analysis
-    const uniqueTokens = Array.from(new Set(events.map(e => e.token)))
-    console.log(`\n   🪙 Token Analysis:`)
-    console.log(`     Unique tokens: ${uniqueTokens.length}`)
-    if (uniqueTokens.length > 0) {
-      console.log(`     Events per token: ${(events.length / uniqueTokens.length).toFixed(1)} avg`)
-    }
-
-    // Time range analysis
-    const timestamps = events
-      .map(e => (e.timestamp ? Number(e.timestamp) : 0))
-      .filter(t => t > 0)
-      .sort((a, b) => a - b)
-
-    if (timestamps.length > 0) {
-      const firstEvent = new Date(timestamps[0] * 1000)
-      const lastEvent = new Date(timestamps[timestamps.length - 1] * 1000)
-      const timeRange = (timestamps[timestamps.length - 1] - timestamps[0]) / 3600 // hours
-
-      console.log(`\n   ⏰ Time Range Analysis:`)
-      console.log(`     First event: ${firstEvent.toISOString()}`)
-      console.log(`     Last event: ${lastEvent.toISOString()}`)
-      console.log(`     Time span: ${timeRange.toFixed(1)} hours`)
-      if (timeRange > 0) {
-        console.log(`     Events per hour: ${(events.length / timeRange).toFixed(1)} avg`)
-      }
-    }
-    console.log('')
-
-    // === Step 4: Detailed Event Examples ===
-    console.log('🔍 Sample Events (Latest 5):')
-    const sampleEvents = events.slice(-5).reverse() // Latest 5, newest first
-
-    sampleEvents.forEach((event, index) => {
-      console.log(`\n   ${index + 1}. ${event.type} Event:`)
-      console.log(`      Token: ${event.token}`)
-      console.log(`      Block: ${event.blockNumber}`)
-      if (event.timestamp) {
-        console.log(`      Timestamp: ${new Date(Number(event.timestamp) * 1000).toISOString()}`)
-      }
-      console.log(`      Transaction: ${event.transactionHash}`)
-
-      // Show event-specific data
-      if (event.type === 'Buy' && 'buyer' in event) {
-        console.log(`      Buyer: ${event.buyer}`)
-        console.log(`      Amount In: ${event.amountIn}`)
-        console.log(`      Amount Out: ${event.amountOut}`)
-      } else if (event.type === 'Sell' && 'seller' in event) {
-        console.log(`      Seller: ${event.seller}`)
-        console.log(`      Amount In: ${event.amountIn}`)
-        console.log(`      Amount Out: ${event.amountOut}`)
-      } else if (event.type === 'Create' && 'creator' in event) {
-        console.log(`      Creator: ${event.creator}`)
-        console.log(`      Target Amount: ${event.targetTokenAmount}`)
-      }
-    })
-
-    // === Step 5: Statistics Summary ===
-    console.log('\n📋 Indexing Summary:')
-    console.log(`   Total events processed: ${events.length}`)
-    console.log(`   Unique tokens: ${uniqueTokens.length}`)
-    console.log(`   Block range: ${FROM_BLOCK} to ${TO_BLOCK}`)
-    console.log(`   Fetch time: ${fetchTime}ms`)
+    // 3. Show first 10 events
     if (events.length > 0) {
-      console.log(`   Average time per event: ${(fetchTime / events.length).toFixed(2)}ms`)
+      console.log('\n📊 Events (showing first 10):')
+      for (const event of events.slice(0, 10)) {
+        console.log(`   ${event.type} | Token: ${event.token} | Block: ${event.blockNumber}`)
+      }
     }
-    console.log('')
 
-    // === Step 6: Export Options ===
-    console.log('💾 Export Options:')
-    console.log('   The events can be processed further:')
-    console.log('   - Save to JSON file')
-    console.log('   - Export to CSV for analysis')
-    console.log('   - Stream to database')
-    console.log('   - Calculate trading metrics')
-    console.log('')
+    // 4. Filter by specific tokens if provided
+    if (TOKENS.length > 0) {
+      const filteredEvents = await indexer.fetchEvents(
+        currentBlock - 100, // Wider range for filtering too
+        currentBlock,
+        [CurveEventType.Buy, CurveEventType.Sell],
+        TOKENS // Only these tokens
+      )
 
-    // Example: Show how to save events
-    console.log('   Example: Save to JSON file')
-    console.log('   const fs = require("fs")')
-    console.log('   fs.writeFileSync("events.json", JSON.stringify(events, null, 2))')
+      console.log(`\n🎯 Filtered events for specific tokens: ${filteredEvents.length}`)
+      console.log(`Target tokens: ${TOKENS.join(', ')}`)
 
-    console.log('\n✅ Bonding curve indexing completed successfully!')
+      for (const event of filteredEvents.slice(0, 10)) {
+        console.log(`🎯 ${event.type} | Token: ${event.token} | Block: ${event.blockNumber}`)
+      }
+    } else {
+      console.log('\n🎯 No specific tokens provided for filtering')
+    }
+
+    // 5. Test fetch_all_events with automatic batching
+    console.log('\n🔄 Testing fetch_all_events with automatic batching...')
+    const batchSize = 100 // 100 blocks per batch
+    const startBlock = currentBlock - 1000
+
+    const allEvents = await indexer.fetchAllEvents(
+      startBlock,
+      batchSize,
+      [CurveEventType.Create, CurveEventType.Buy, CurveEventType.Sell],
+      undefined // No token filter for this test
+    )
+
+    console.log('📦 Batch processing results:')
+    console.log(`   Start block: ${startBlock}`)
+    console.log(`   End block: ${currentBlock}`)
+    console.log(`   Batch size: ${batchSize} blocks`)
+    console.log(`   Total events found: ${allEvents.length}`)
+
+    if (allEvents.length > 0) {
+      console.log('\n📊 Events from batch processing (showing first 10):')
+      for (const event of allEvents.slice(0, 10)) {
+        console.log(`🔄 ${event.type} | Token: ${event.token} | Block: ${event.blockNumber}`)
+      }
+
+      // Show unique tokens found in batch processing
+      const batchUniqueTokens = new Set<string>()
+      for (const event of allEvents) {
+        batchUniqueTokens.add(event.token)
+      }
+
+      console.log('\n📊 Unique tokens found in batch processing:')
+      for (const token of batchUniqueTokens) {
+        console.log(`  ${token}`)
+      }
+
+      // Event type breakdown
+      let createCount = 0
+      let buyCount = 0
+      let sellCount = 0
+
+      for (const event of allEvents) {
+        // Map the actual event types to counters
+        if (event.type === 'CurveCreate' || event.type === 'Create') {
+          createCount++
+        } else if (event.type === 'CurveBuy' || event.type === 'Buy') {
+          buyCount++
+        } else if (event.type === 'CurveSell' || event.type === 'Sell') {
+          sellCount++
+        }
+        // Other event types (Sync, Lock, Listed) - not counted in main breakdown
+      }
+
+      console.log('\n📈 Event type breakdown:')
+      console.log(`  Create: ${createCount} events`)
+      console.log(`  Buy: ${buyCount} events`)
+      console.log(`  Sell: ${sellCount} events`)
+    }
+
+    console.log('\n📦 Historical data example completed successfully!')
   } catch (error) {
-    console.error('❌ Curve indexing failed:', error)
-    throw error
+    console.error('❌ Error:', error)
+    process.exit(1)
   }
-}
-
-// Show usage examples
-function showUsageExamples() {
-  console.log('\n📚 Usage Examples:')
-  console.log('')
-
-  console.log('1. 🌐 Index all events from recent blocks:')
-  console.log('   bun run example:curve-indexer')
-  console.log('')
-
-  console.log('2. 🎯 Filter specific tokens:')
-  console.log('   bun run example:curve-indexer -- --tokens 0xToken1,0xToken2,0xToken3')
-  console.log('')
-
-  console.log('3. 📅 Specific block range:')
-  console.log('   bun run example:curve-indexer -- --from-block 1500000 --to-block 1600000')
-  console.log('')
-
-  console.log('4. 🎪 Filter event types:')
-  console.log('   bun run example:curve-indexer -- --events CurveBuy,CurveSell,CurveCreate')
-  console.log('')
-
-  console.log('5. 🎛️  Combined filtering:')
-  console.log(
-    '   bun run example:curve-indexer -- --tokens 0xToken1 --events CurveBuy,CurveSell --from-block 1500000'
-  )
-  console.log('')
-
-  console.log('📊 Available Event Types:')
-  console.log('   - Create: New token launches')
-  console.log('   - Buy: Token purchases')
-  console.log('   - Sell: Token sales')
-  console.log('   - Sync: Price/liquidity updates')
-  console.log('   - Lock: Token locks')
-  console.log('   - Listed: DEX listings')
 }
 
 // Run the example
 if (require.main === module) {
-  executeCurveIndexing()
-    .then(() => showUsageExamples())
-    .then(() => {
-      console.log('\n🎉 Example completed!')
-      console.log('💡 Next steps:')
-      console.log('   - Process events for trading analysis')
-      console.log('   - Set up real-time monitoring with curve_stream')
-      console.log('   - Export data for external analysis')
-      process.exit(0)
-    })
-    .catch(error => {
-      console.error('\n💥 Example failed:', error)
-      process.exit(1)
-    })
+  main().catch(error => {
+    console.error('❌ Fatal error:', error)
+    process.exit(1)
+  })
 }
 
-export { executeCurveIndexing }
+export { main as executeCurveIndexing }

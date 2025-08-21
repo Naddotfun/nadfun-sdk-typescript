@@ -9,7 +9,6 @@
  */
 
 import { config } from 'dotenv'
-import { createPublicClient, http } from 'viem'
 import { monadTestnet } from 'viem/chains'
 import { Stream as CurveStream } from '../../src/stream/curve/Stream'
 import { CurveEventType } from '../../src/types'
@@ -38,13 +37,8 @@ async function runCurveStreamExample() {
   console.log('📊 NADS Fun SDK - Curve Stream Example\n')
 
   try {
-    // Initialize client using SDK standards
-    const client = createPublicClient({
-      chain: monadTestnet,
-      transport: http(RPC_URL),
-    })
     // Create curve stream using SDK
-    const stream = new CurveStream(client)
+    const stream = new CurveStream(RPC_URL)
 
     console.log('📋 Configuration:')
     console.log(`   Using SDK CurveStream class`)

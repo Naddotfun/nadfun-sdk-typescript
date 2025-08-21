@@ -24,6 +24,7 @@ export function parseBondingCurveEvent(log: Log, timestamp?: number): BondingCur
     if (parsedLogs.length === 0) return null
 
     const parsed = parsedLogs[0]
+
     const baseEvent = {
       blockNumber: Number(log.blockNumber!),
       transactionHash: log.transactionHash!,
@@ -38,24 +39,24 @@ export function parseBondingCurveEvent(log: Log, timestamp?: number): BondingCur
       case 'CurveCreate':
         return {
           ...baseEvent,
-          type: 'Create',
+          type: 'CurveCreate',
           creator: parsed.args.creator,
           pool: parsed.args.pool,
           name: parsed.args.name,
           symbol: parsed.args.symbol,
           tokenURI: parsed.args.tokenURI,
-          virtualMon: BigInt(parsed.args.virtualMon),
-          virtualToken: BigInt(parsed.args.virtualToken),
-          targetTokenAmount: BigInt(parsed.args.targetTokenAmount),
+          virtualMon: parsed.args.virtualMon,
+          virtualToken: parsed.args.virtualToken,
+          targetTokenAmount: parsed.args.targetTokenAmount,
         }
 
       case 'CurveBuy':
         return {
           ...baseEvent,
-          type: 'Buy',
+          type: 'CurveBuy',
           sender: parsed.args.sender,
-          amountIn: BigInt(parsed.args.amountIn),
-          amountOut: BigInt(parsed.args.amountOut),
+          amountIn: parsed.args.amountIn,
+          amountOut: parsed.args.amountOut,
         }
 
       case 'CurveSell':
@@ -63,30 +64,30 @@ export function parseBondingCurveEvent(log: Log, timestamp?: number): BondingCur
           ...baseEvent,
           type: 'Sell',
           sender: parsed.args.sender,
-          amountIn: BigInt(parsed.args.amountIn),
-          amountOut: BigInt(parsed.args.amountOut),
+          amountIn: parsed.args.amountIn,
+          amountOut: parsed.args.amountOut,
         }
 
       case 'CurveSync':
         return {
           ...baseEvent,
-          type: 'Sync',
-          realMonReserve: BigInt(parsed.args.realMonReserve),
-          realTokenReserve: BigInt(parsed.args.realTokenReserve),
-          virtualMonReserve: BigInt(parsed.args.virtualMonReserve),
-          virtualTokenReserve: BigInt(parsed.args.virtualTokenReserve),
+          type: 'CurveSync',
+          realMonReserve: parsed.args.realMonReserve,
+          realTokenReserve: parsed.args.realTokenReserve,
+          virtualMonReserve: parsed.args.virtualMonReserve,
+          virtualTokenReserve: parsed.args.virtualTokenReserve,
         }
 
       case 'CurveTokenLocked':
         return {
           ...baseEvent,
-          type: 'Lock',
+          type: 'CurveTokenLocked',
         }
 
       case 'CurveTokenListed':
         return {
           ...baseEvent,
-          type: 'Listed',
+          type: 'CurveListed',
           pool: parsed.args.pool,
         }
 
