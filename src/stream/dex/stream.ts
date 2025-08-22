@@ -14,7 +14,7 @@ export class Stream {
   private poolAddresses: Address[]
   private listeners: Map<string, (event: SwapEvent) => void> = new Map()
   private isRunning: boolean = false
-  private unwatchFunctions: (() => void)[] = []
+  private watchFunctions: (() => void)[] = []
   private reconnectAttempts: number = 0
   private maxReconnectAttempts: number = 5
   private reconnectDelay: number = 1000
@@ -171,7 +171,7 @@ export class Stream {
 
       const unwatch = this.client.watchContractEvent(watchConfig)
 
-      this.unwatchFunctions.push(unwatch)
+      this.watchFunctions.push(unwatch)
     } catch (error) {
       console.error(`❌ Failed to start watching pool ${poolAddress}:`, error)
       this.handleReconnection(poolAddress)
@@ -279,14 +279,14 @@ export class Stream {
     console.log('🛑 Stopping DEX swap stream')
 
     // Stop all watchers
-    for (const unwatch of this.unwatchFunctions) {
+    for (const unwatch of this.watchFunctions) {
       try {
         unwatch()
       } catch (error) {
         console.error('❌ Error stopping watcher:', error)
       }
     }
-    this.unwatchFunctions = []
+    this.watchFunctions = []
 
     // Clear all listeners
     this.removeAllListeners()

@@ -14,7 +14,7 @@ export class Stream {
   private tokenFilter: Set<string> | null = null
   private listeners: Map<string, (event: BondingCurveEvent) => void> = new Map()
   private isRunning: boolean = false
-  private unwatchFn: (() => void) | null = null
+  private watchFn: (() => void) | null = null
   private reconnectAttempts: number = 0
   private maxReconnectAttempts: number = 5
   private reconnectDelay: number = 1000
@@ -134,7 +134,7 @@ export class Stream {
       }
 
       // Use viem's watchEvent - it automatically handles HTTP vs polling
-      this.unwatchFn = this.client.watchEvent(watchConfig)
+      this.watchFn = this.client.watchEvent(watchConfig)
 
       console.log('✅ Bonding curve stream started successfully')
     } catch (error) {
@@ -185,10 +185,10 @@ export class Stream {
     if (!this.isRunning) return
 
     // Stop current watcher
-    if (this.unwatchFn) {
+    if (this.watchFn) {
       try {
-        this.unwatchFn()
-        this.unwatchFn = null
+        this.watchFn()
+        this.watchFn = null
       } catch (error) {
         console.error('❌ Error stopping current watcher:', error)
       }
@@ -224,10 +224,10 @@ export class Stream {
     console.log('🛑 Stopping bonding curve stream')
 
     // Stop the event watcher
-    if (this.unwatchFn) {
+    if (this.watchFn) {
       try {
-        this.unwatchFn()
-        this.unwatchFn = null
+        this.watchFn()
+        this.watchFn = null
       } catch (error) {
         console.error('❌ Error stopping bonding curve watcher:', error)
       }
