@@ -62,7 +62,7 @@ export function parseBondingCurveEvent(log: Log, timestamp?: number): BondingCur
       case 'CurveSell':
         return {
           ...baseEvent,
-          type: 'Sell',
+          type: 'CurveSell',
           sender: parsed.args.sender,
           amountIn: parsed.args.amountIn,
           amountOut: parsed.args.amountOut,
