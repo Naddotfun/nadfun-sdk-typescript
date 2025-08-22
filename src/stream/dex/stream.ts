@@ -43,21 +43,6 @@ export class Stream {
   }
 
   /**
-   * Create WebSocket stream by discovering pools for token addresses
-   */
-  static async discoverPoolsForTokensWs(wsUrl: string, tokenAddresses: Address[]): Promise<Stream> {
-    console.log(`🔍 Discovering pools for ${tokenAddresses.length} tokens...`)
-
-    const poolAddresses: Address[] = await Stream.findPoolsForTokens(
-      wsUrl.replace('wss:', 'https:').replace('ws:', 'http:'),
-      tokenAddresses
-    )
-    console.log(`✅ Found ${poolAddresses.length} pools`)
-
-    return new Stream(wsUrl, poolAddresses)
-  }
-
-  /**
    * Find pool addresses for given token addresses using V3 Factory
    * Each token is paired with WMON using NADS fee tier
    */

@@ -29,8 +29,6 @@ export interface BaseEvent {
  * Used by: Stream constructors, stream initialization
  */
 export interface StreamConfig {
-  /** WebSocket URL for real-time streaming (optional) */
-  wsUrl?: string
   /** RPC URL for historical data and fallbacks (optional) */
   rpcUrl?: string
   /** Specific contract addresses to monitor (optional) */

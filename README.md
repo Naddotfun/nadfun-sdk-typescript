@@ -271,15 +271,13 @@ const subscribe = await dexStream.subscribe(
 
 ### 📈 Historical Data Analysis
 
-Fetch and analyze historical events with WebSocket support:
+Fetch and analyze historical events:
 
 ```typescript
 import { CurveIndexer, CurveEventType } from '@nadfun/sdk'
 
-// Now supports both HTTP and WebSocket connections
+// Now supports both HTTP
 const indexer = new CurveIndexer('https://your-rpc-endpoint')
-// or
-const indexer = new CurveIndexer('wss://your-websocket-endpoint')
 
 // Fetch events from block range
 const events = await indexer.fetchEvents(
@@ -324,8 +322,8 @@ Monitor Uniswap V3 swap events with enhanced features:
 ```typescript
 import { DexIndexer } from '@nadfun/sdk'
 
-// Auto-discover pools for tokens with WebSocket support
-const indexer = await DexIndexer.discoverPoolsForTokens('wss://your-websocket-endpoint', tokens)
+// Auto-discover pools for tokens with Https support
+const indexer = await DexIndexer.discoverPoolsForTokens('https://your-rpc-endpoint', tokens)
 
 // Fetch swap events with automatic batching
 const swaps = await indexer.fetchEvents(fromBlock, toBlock)

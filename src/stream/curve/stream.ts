@@ -133,7 +133,7 @@ export class Stream {
         watchConfig.poll = true
       }
 
-      // Use viem's watchEvent - it automatically handles WebSocket vs polling
+      // Use viem's watchEvent - it automatically handles HTTP vs polling
       this.unwatchFn = this.client.watchEvent(watchConfig)
 
       console.log('✅ Bonding curve stream started successfully')

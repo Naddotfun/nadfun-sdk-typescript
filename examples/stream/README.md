@@ -7,7 +7,7 @@ This directory contains examples demonstrating the enhanced Stream API that prov
 ### ✅ Implemented Features
 
 - **Real-time Event Listening**: Uses viem's watchEvent API
-- **WebSocket & HTTP Support**: Automatic transport detection with fallback
+- **HTTP Support**: Automatic transport detection with fallback
 - **Auto Reconnection**: Exponential backoff retry on connection failures
 - **Enhanced Error Handling**: Granular error handling at each stage
 - **Type Safety**: Full TypeScript support
@@ -17,8 +17,7 @@ This directory contains examples demonstrating the enhanced Stream API that prov
 
 1. **True Real-time**: No more polling - actual real-time events
 2. **Auto Reconnection**: Automatic reconnection attempts on network issues
-3. **Transport Flexibility**: WebSocket preferred, HTTP fallback
-4. **Memory Efficient**: Optimized event listener management
+3. **Memory Efficient**: Optimized event listener management
 
 ## 📖 Usage Examples
 
@@ -65,14 +64,8 @@ curveStream.stop()
 ```typescript
 import { Stream as DexStream } from '@/stream/dex/stream'
 
-// Create with WebSocket (fallback to HTTP)
-const dexStream = await DexStream.createWebSocket(
-  'wss://testnet-rpc.monad.xyz', // WebSocket URL
-  ['0xpool1...', '0xpool2...'] // Pool addresses to monitor
-)
-
 // Or create with HTTP
-const dexStreamHttp = await DexStream.createHttp(
+const dexStreamHttp = await DexStream(
   'https://testnet-rpc.monad.xyz', // HTTP URL
   ['0xpool1...', '0xpool2...'] // Pool addresses to monitor
 )
@@ -167,7 +160,6 @@ curveStream.filterTokens(['0xtoken1...', '0xtoken2...'])
 
 ### Transport Selection
 
-- **WebSocket**: Use for real-time critical applications (faster)
 - **HTTP**: Use for stability-critical applications (more reliable)
 
 ### Pool Addresses
@@ -200,23 +192,6 @@ setInterval(() => {
   console.log('Reconnection status:', stream.getReconnectionStatus())
 }, 10000)
 ```
-
-## 🚨 Troubleshooting
-
-### Common Issues
-
-1. **WebSocket Connection Failed**
-   - Automatically falls back to HTTP transport
-   - Check logs for "WebSocket creation failed, falling back to HTTP"
-
-2. **No Events Received**
-   - Verify network connection
-   - Check if pool/router addresses are correct
-   - Ensure filters are not too restrictive
-
-3. **Continuous Reconnection Failures**
-   - Check RPC endpoint status
-   - May have reached maximum retry attempts
 
 ### Performance Optimization
 

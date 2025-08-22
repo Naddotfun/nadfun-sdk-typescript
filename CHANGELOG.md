@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.4]
+
+## Bug Fix
+
+- Delete socket logic cuz sdk not support with webSocket
+- Delete wrong subscribe example
+
 ## [0.2.3] - 2024-12-20
 
 ### 🎯 Enhanced Features

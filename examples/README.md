@@ -2,12 +2,6 @@
 
 This directory contains comprehensive examples demonstrating how to use the Nad.fun SDK for trading, token operations, and real-time event streaming.
 
-## What's New (v0.2.3)
-
-- 🎯 **Enhanced Token Utils**: Demonstrates new batch operations, burn functions, and health checks
-- 🚀 **Improved Streaming Examples**: WebSocket support and simplified APIs
-- 📊 **Cleaner Code**: All examples updated with latest SDK improvements
-
 ## 💰 Trading Examples
 
 ### 1. Buy Tokens (`trade/buy.ts`)
@@ -131,9 +125,6 @@ Historical bonding curve event analysis with enhanced features.
 # Fetch all bonding curve events
 bun run example:curve-indexer -- --rpc-url https://testnet.monad.xyz
 
-# WebSocket support (NEW)
-bun run example:curve-indexer -- --rpc-url wss://testnet.monad.xyz
-
 # Filter by specific tokens
 bun run example:curve-indexer -- --rpc-url https://testnet.monad.xyz --tokens 0xToken1,0xToken2
 
@@ -148,7 +139,6 @@ bun run example:curve-indexer -- --from-block 1000000 --to-block latest
 - 🔄 **Batch Processing**: Automatic pagination with fetchAllEvents (NEW)
 - 📈 **Statistics**: Event counts and analysis
 - 🪙 **Token Filtering**: Focus on specific token addresses
-- 🌐 **WebSocket Support**: Use WSS for better performance (NEW)
 
 ### 7. Bonding Curve Stream (`stream/curve_stream.ts`)
 
@@ -184,9 +174,6 @@ Historical DEX swap event analysis with simplified API.
 # Discover pools and fetch historical swaps
 bun run example:dex-indexer -- --rpc-url https://testnet.monad.xyz --tokens 0xToken1,0xToken2
 
-# WebSocket support (NEW)
-bun run example:dex-indexer -- --rpc-url wss://testnet.monad.xyz --tokens 0xToken1,0xToken2
-
 # Batch process with JSON array format
 bun run example:dex-indexer -- --rpc-url https://testnet.monad.xyz --tokens '["0xToken1","0xToken2"]'
 ```
@@ -197,7 +184,6 @@ bun run example:dex-indexer -- --rpc-url https://testnet.monad.xyz --tokens '["0
 - 📊 **Swap Event Analysis**: Detailed swap data
 - 🔄 **Batch Processing**: Automatic pagination with fetchAllEvents (NEW)
 - 📈 **Simplified API**: Direct RPC URL usage (NEW)
-- 🌐 **WebSocket Support**: Use WSS for better performance (NEW)
 
 ### 9. DEX Stream (`stream/dex_stream.ts`)
 
@@ -444,8 +430,6 @@ import { CurveIndexer, CurveEventType } from '@nadfun/sdk'
 
 // Create indexer with simplified API (NEW)
 const indexer = new CurveIndexer('https://your-rpc-endpoint')
-// or use WebSocket for better performance
-const indexer = new CurveIndexer('wss://your-websocket-endpoint')
 
 // Fetch and process events
 const events = await indexer.fetchEvents(
