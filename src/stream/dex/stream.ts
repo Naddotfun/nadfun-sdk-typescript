@@ -25,7 +25,6 @@ export class Stream {
       transport: webSocket(rpcUrl),
     })
     this.client = client
-    console.log(poolAddresses, 'poolAddresses')
     this.poolAddresses = poolAddresses
   }
 

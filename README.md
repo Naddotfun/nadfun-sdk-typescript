@@ -474,7 +474,7 @@ All examples support command line arguments for configuration:
 --tokens <ADDRS>     # Token addresses: 'addr1,addr2'
 --pools <ADDRS>      # Pool addresses: 'pool1,pool2'
 --recipient <ADDR>   # Recipient address for transfers/allowances
---events <TYPES>     # Event types: 'Buy,Sell,Create'
+--events <TYPES>     # Event types: 'CurveBuy,CurveSell,CurveCreate'
 
 # Example usage
 bun run example:sell-permit -- \
