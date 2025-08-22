@@ -1,4 +1,4 @@
-import { createPublicClient, http, parseEventLogs, type Log } from 'viem'
+import { createPublicClient, parseEventLogs, webSocket, type Log } from 'viem'
 import { DexEventType, SwapEvent } from '@/types'
 import { v3PoolAbi } from '@/abis/v3pool'
 import { v3factoryAbi } from '@/abis/v3factory'
@@ -22,10 +22,10 @@ export class Stream {
   constructor(rpcUrl: string, poolAddresses: Address[]) {
     const client = createPublicClient({
       chain: CURRENT_CHAIN,
-      transport: http(rpcUrl),
+      transport: webSocket(rpcUrl),
     })
     this.client = client
-
+    console.log(poolAddresses, 'poolAddresses')
     this.poolAddresses = poolAddresses
   }
 
@@ -52,7 +52,7 @@ export class Stream {
   ): Promise<Address[]> {
     const client = createPublicClient({
       chain: CURRENT_CHAIN,
-      transport: http(rpcUrl),
+      transport: webSocket(rpcUrl),
     })
 
     const wmonAddress = CONTRACTS.MONAD_TESTNET.WMON as Address
@@ -81,6 +81,8 @@ export class Stream {
           functionName: 'getPool',
           args: [token0, token1, NADS_FEE_TIER],
         })) as Address
+
+        console.log(poolAddress, 'poolAddress22222222222')
 
         // Check if pool exists (not zero address)
         if (poolAddress && poolAddress !== '0x0000000000000000000000000000000000000000') {
@@ -161,7 +163,6 @@ export class Stream {
           console.error(`❌ Error watching pool ${poolAddress}:`, error)
           this.handleReconnection(poolAddress)
         },
-        pollingInterval: 1000, // Poll every second for HTTP
       }
 
       // Only add poll property for HTTP transport
@@ -169,9 +170,11 @@ export class Stream {
         watchConfig.poll = true
       }
 
-      const unwatch = this.client.watchContractEvent(watchConfig)
+      const watch = this.client.watchContractEvent(watchConfig)
 
-      this.watchFunctions.push(unwatch)
+      console.log(watch, 'watch')
+
+      this.watchFunctions.push(watch)
     } catch (error) {
       console.error(`❌ Failed to start watching pool ${poolAddress}:`, error)
       this.handleReconnection(poolAddress)

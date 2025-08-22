@@ -1,7 +1,7 @@
 import { CurveEventType, BondingCurveEvent } from '@/types'
 import { CONTRACTS, CURRENT_CHAIN } from '@/constants'
 import { parseBondingCurveEvent } from './parser'
-import { type PublicClient, type Log, createPublicClient, http } from 'viem'
+import { type PublicClient, type Log, createPublicClient, webSocket } from 'viem'
 
 /**
  * Bonding curve event stream with 2-stage filtering
@@ -22,7 +22,7 @@ export class Stream {
   constructor(rpcUrl: string) {
     const client = createPublicClient({
       chain: CURRENT_CHAIN,
-      transport: http(rpcUrl),
+      transport: webSocket(rpcUrl),
     })
     this.client = client
 
@@ -125,7 +125,6 @@ export class Stream {
           console.error('❌ Error in bonding curve stream:', error)
           this.handleReconnection()
         },
-        pollingInterval: 1000, // Poll every second for HTTP
       }
 
       // Only add poll property for HTTP transport

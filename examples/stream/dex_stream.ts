@@ -1,19 +1,26 @@
 /**
- * DEX Event Stream Example
+ * DEX real-time streaming example
  *
- * Demonstrates how to use the SDK's built-in DEX Stream class
- * for monitoring Uniswap V3 swap events with automatic pool discovery.
+ * Demonstrates 3 different DEX streaming scenarios:
+ * 1. Monitor specific pool addresses directly
+ * 2. Auto-discover pools for specific tokens
+ * 3. Monitor single token's pool
  *
  * Usage:
- * bun run example:dex-stream -- --token 0xTokenAddress
- * bun run example:dex-stream -- --tokens 0xToken1,0xToken2
- * bun run example:dex-stream -- --pools 0xPool1,0xPool2
+ * # Scenario 1: Monitor specific pool addresses
+ * bun run example:dex-stream -- --ws-url wss://your-ws-endpoint --pools 0xPool1,0xPool2
+ *
+ * # Scenario 2: Auto-discover pools for tokens
+ * bun run example:dex-stream -- --ws-url wss://your-ws-endpoint --tokens 0xToken1,0xToken2
+ *
+ * # Scenario 3: Monitor single token's pool
+ * bun run example:dex-stream -- --ws-url wss://your-ws-endpoint --token 0xTokenAddress
  */
 
 import { config } from 'dotenv'
-import { monadTestnet } from 'viem/chains'
-import { Stream as DexStream } from '../../src/stream/dex/stream'
 import { parseArgs } from 'util'
+import { Stream as DexStream } from '../../src/stream/dex/stream'
+import { SwapEvent } from '../../src/types'
 
 // Load environment variables
 config()
@@ -22,7 +29,6 @@ config()
 const { values: args } = parseArgs({
   args: process.argv.slice(2),
   options: {
-    'rpc-url': { type: 'string' },
     'ws-url': { type: 'string' },
     pools: { type: 'string' },
     token: { type: 'string' },
@@ -31,160 +37,194 @@ const { values: args } = parseArgs({
   allowPositionals: false,
 })
 
-const RPC_URL = args['rpc-url'] || process.env.RPC_URL || monadTestnet.rpcUrls.default.http[0]
-const POOL_ADDRESSES = process.env.POOLS
-  ? process.env.POOLS.split(',').map(p => p.trim())
-  : ((args.pools?.split(',').map(p => p.trim()) || []) as `0x${string}`[])
-const TOKEN_ADDRESS =
-  args.token || process.env.TOKEN || '0xce3D002DD6ECc97a628ad04ffA59DA3D91a589B1'
-const TOKEN_ADDRESSES =
+// Configuration
+const WS_URL = args['ws-url'] || process.env.WS_RPC_URL
+const POOLS =
+  args.pools?.split(',').map(p => p.trim()) ||
+  process.env.POOLS?.split(',').map(p => p.trim()) ||
+  []
+const TOKENS =
   args.tokens?.split(',').map(t => t.trim()) ||
   process.env.TOKENS?.split(',').map(t => t.trim()) ||
   []
+const SINGLE_TOKEN = args.token
 
 let swapCount = 0
 
-async function runDexStreamExample() {
-  console.log('🏊 NADS Fun SDK - DEX Stream Example\n')
-
-  // Determine tokens to use for pool discovery
-  const tokensForDiscovery = []
-  if (TOKEN_ADDRESS) {
-    tokensForDiscovery.push(TOKEN_ADDRESS)
+async function main() {
+  // Print configuration
+  console.log('📋 Configuration:')
+  console.log(`   WS URL: ${WS_URL}`)
+  if (POOLS.length > 0) {
+    console.log(`   Pools: ${POOLS.join(', ')}`)
   }
-  if (TOKEN_ADDRESSES.length > 0) {
-    tokensForDiscovery.push(...TOKEN_ADDRESSES)
+  if (TOKENS.length > 0) {
+    console.log(`   Tokens: ${TOKENS.join(', ')}`)
   }
+  if (SINGLE_TOKEN) {
+    console.log(`   Single Token: ${SINGLE_TOKEN}`)
+  }
+  console.log('')
 
-  // Check if we have either pools or tokens
-  if (POOL_ADDRESSES.length === 0 && tokensForDiscovery.length === 0) {
-    console.log('❌ No pool addresses or token addresses provided')
-    console.log('💡 Usage options:')
-    console.log('   bun run example:dex-stream -- --token 0xTokenAddress')
-    console.log('   bun run example:dex-stream -- --tokens 0xToken1,0xToken2')
-    console.log('   bun run example:dex-stream -- --pools 0xPool1,0xPool2')
-    console.log('')
-    showUsageExamples()
-    return
+  if (!WS_URL) {
+    console.error('❌ WebSocket URL is required')
+    console.log('💡 Usage: --ws-url wss://your-ws-url')
+    process.exit(1)
   }
 
   try {
-    let stream: DexStream
-
-    if (POOL_ADDRESSES.length > 0) {
-      // Use provided pool addresses directly - much simpler now!
-      console.log('📍 Using provided pool addresses...')
-      stream = new DexStream(RPC_URL, POOL_ADDRESSES as `0x${string}`[])
-
-      console.log('📋 Configuration:')
-      console.log(`   Mode: Direct pool monitoring`)
-      console.log(`   Pool Count: ${POOL_ADDRESSES.length}`)
-      console.log(`   Pools: ${POOL_ADDRESSES.join(', ')}`)
+    // Determine scenario based on arguments
+    if (POOLS.length > 0) {
+      console.log(`🎯 SCENARIO 1: Monitoring specific pool addresses: ${POOLS.length} pools`)
+      await runSpecificPoolsScenario(WS_URL, POOLS as `0x${string}`[])
+    } else if (TOKENS.length > 0) {
+      console.log(`🔍 SCENARIO 2: Auto-discovering pools for ${TOKENS.length} tokens`)
+      await runTokenDiscoveryScenario(WS_URL, TOKENS as `0x${string}`[])
+    } else if (SINGLE_TOKEN) {
+      console.log('🏷️ SCENARIO 3: Single token pool discovery')
+      await runSingleTokenScenario(WS_URL, SINGLE_TOKEN as `0x${string}`)
     } else {
-      // Use pool discovery for token addresses - also simplified!
-      console.log('🔍 Discovering pools for token addresses...')
-      console.log(`   Tokens: ${tokensForDiscovery.join(', ')}`)
-      console.log('   Using NADS standard fee tier (1%)')
-      console.log('')
-
-      stream = await DexStream.discoverPoolsForTokens(RPC_URL, tokensForDiscovery)
-
-      const discoveredPools = stream.getPoolAddresses()
-      console.log('📋 Configuration:')
-      console.log(`   Mode: Automatic pool discovery`)
-      console.log(`   Token Count: ${tokensForDiscovery.length}`)
-      console.log(`   Discovered Pools: ${discoveredPools.length}`)
-
-      if (discoveredPools.length > 0) {
-        console.log('   Pool Addresses:')
-        discoveredPools.forEach((pool, i) => {
-          console.log(`     ${i + 1}. ${pool}`)
-        })
-      } else {
-        console.log('   ⚠️  No pools found - may not exist with NADS fee tier')
-        return
-      }
+      console.log('❌ Please provide either:')
+      console.log('   - Pool addresses: --pools 0xPool1,0xPool2')
+      console.log('   - Token addresses: --tokens 0xToken1,0xToken2')
+      console.log('   - Single token: --token 0xTokenAddress')
+      process.exit(1)
     }
-
-    console.log('')
-
-    // Set up swap event handler
-    stream.onSwap(event => {
-      swapCount++
-      console.log(`\n🔄 Swap Event #${swapCount}`)
-      console.log(`   Block: ${event.blockNumber}`)
-      console.log(`   Pool: ${event.pool}`)
-      console.log(`   Sender: ${event.sender}`)
-      console.log(`   Recipient: ${event.recipient}`)
-      console.log(`   Amount0: ${event.amount0}`)
-      console.log(`   Amount1: ${event.amount1}`)
-      console.log(`   Liquidity: ${event.liquidity}`)
-      console.log(`   Tick: ${event.tick}`)
-      console.log(`   TX: ${event.transactionHash}`)
-    })
-
-    console.log('🚀 Starting DEX stream...')
-    await stream.start()
-
-    console.log('✅ Stream active! Monitoring swap events...')
-    console.log('💡 Execute swaps on monitored pools to see live events')
-    console.log('⏳ Press Ctrl+C to stop')
-    console.log('')
-
-    // Show stats every 30 seconds
-    const statsInterval = setInterval(() => {
-      if (swapCount > 0) {
-        console.log(`📊 Swaps captured: ${swapCount}`)
-      } else {
-        console.log('⏳ Waiting for swaps...')
-      }
-    }, 30000)
-
-    // Graceful shutdown
-    process.on('SIGINT', () => {
-      console.log('\n🛑 Stopping stream...')
-      clearInterval(statsInterval)
-      stream.stop()
-      console.log(`📊 Final stats: ${swapCount} swaps captured`)
-      process.exit(0)
-    })
-
-    // Keep running
-    await new Promise(() => {})
   } catch (error) {
-    console.error('❌ DEX stream example failed:', error)
-    throw error
+    console.error('❌ Error:', error)
+    process.exit(1)
   }
 }
 
-// Usage examples helper
-function showUsageExamples() {
-  console.log('🔍 Usage Examples:')
+// Scenario 1: Monitor specific pool addresses directly
+async function runSpecificPoolsScenario(wsUrl: string, poolAddresses: `0x${string}`[]) {
+  console.log('📡 Creating DexStream for specific pools...')
+
+  poolAddresses.forEach((pool, i) => {
+    console.log(`   ${i + 1}. Pool: ${pool}`)
+  })
+
+  const swapStream = new DexStream(wsUrl, poolAddresses)
+
+  swapStream.onSwap(event => {
+    handleSwapEvent(event, 'SPECIFIC_POOLS')
+  })
+
+  console.log('🔴 Listening for DEX swap events in specified pools...')
+  await swapStream.start()
+
+  setupGracefulShutdown(swapStream)
+  await keepRunning()
+}
+
+// Scenario 2: Auto-discover pools for specific tokens
+async function runTokenDiscoveryScenario(wsUrl: string, tokenAddresses: `0x${string}`[]) {
+  console.log('📡 Auto-discovering pools for tokens...')
+
+  tokenAddresses.forEach((token, i) => {
+    console.log(`   ${i + 1}. Token: ${token}`)
+  })
+
+  const swapStream = await DexStream.discoverPoolsForTokens(wsUrl, tokenAddresses)
+
+  const discoveredPools = swapStream.getPoolAddresses()
+  console.log(`✅ Discovered ${discoveredPools.length} pools`)
+
+  if (discoveredPools.length === 0) {
+    console.log('⚠️  No pools found for the specified tokens')
+    return
+  }
+
+  swapStream.onSwap(event => {
+    handleSwapEvent(event, 'TOKEN_DISCOVERY')
+  })
+
+  console.log('🔍 Listening for DEX swap events in discovered pools...')
+  await swapStream.start()
+
+  setupGracefulShutdown(swapStream)
+  await keepRunning()
+}
+
+// Scenario 3: Single token pool discovery
+async function runSingleTokenScenario(wsUrl: string, tokenAddress: `0x${string}`) {
+  console.log('📡 Discovering pool for single token...')
+  console.log(`   Token: ${tokenAddress}`)
+
+  const swapStream = await DexStream.discoverPoolsForTokens(wsUrl, [tokenAddress])
+
+  const discoveredPools = swapStream.getPoolAddresses()
+  console.log(`✅ Discovered ${discoveredPools.length} pool(s)`)
+
+  if (discoveredPools.length === 0) {
+    console.log('⚠️  No pool found for the specified token')
+    return
+  }
+
+  swapStream.onSwap(event => {
+    handleSwapEvent(event, 'SINGLE_TOKEN')
+  })
+
+  console.log('🏷️ Listening for DEX swap events in discovered pool...')
+  await swapStream.start()
+
+  setupGracefulShutdown(swapStream)
+  await keepRunning()
+}
+
+function handleSwapEvent(event: SwapEvent, scenario: string) {
+  swapCount++
+  console.log(
+    `💱 [${scenario}] Swap in pool ${event.pool} | Block: ${event.blockNumber} | TxIndex: ${event.transactionIndex}`
+  )
+
+  console.log(`   💰 Amount0: ${event.amount0} | Amount1: ${event.amount1}`)
+
+  console.log(`   👤 Sender: ${event.sender} | Recipient: ${event.recipient}`)
+
+  console.log(
+    `   📊 Liquidity: ${event.liquidity} | Tick: ${event.tick} | Price: ${event.sqrtPriceX96}`
+  )
+
+  console.log('   ─────────────────────────────────────')
+}
+
+function setupGracefulShutdown(stream: DexStream) {
+  // Show stats every 30 seconds
+  const statsInterval = setInterval(() => {
+    if (swapCount > 0) {
+      console.log(`📊 Swaps captured: ${swapCount}`)
+    } else {
+      console.log('⏳ Waiting for swaps...')
+    }
+  }, 30000)
+
+  // Graceful shutdown
+  process.on('SIGINT', () => {
+    console.log('\n🛑 Stopping stream...')
+    clearInterval(statsInterval)
+    stream.stop()
+    console.log(`📊 Final stats: ${swapCount} swaps captured`)
+    process.exit(0)
+  })
+}
+
+async function keepRunning() {
+  console.log('✅ Stream active! Monitoring swap events...')
+  console.log('💡 Execute swaps on monitored pools to see live events')
+  console.log('⏳ Press Ctrl+C to stop')
   console.log('')
-  console.log('1. 🎯 Single Token (Auto Pool Discovery):')
-  console.log('   bun run example:dex-stream -- --token 0xe622377AaB9C22eA5Fd2622899fF3c060eA27F53')
-  console.log('')
-  console.log('2. 🎯 Multiple Tokens (Auto Pool Discovery):')
-  console.log('   bun run example:dex-stream -- --tokens 0xToken1,0xToken2,0xToken3')
-  console.log('')
-  console.log('3. 📍 Direct Pool Addresses:')
-  console.log('   bun run example:dex-stream -- --pools 0xPool1,0xPool2')
-  console.log('')
-  console.log('4. 🌐 Custom RPC:')
-  console.log('   bun run example:dex-stream -- --token 0xToken --rpc-url https://custom-rpc.com')
-  console.log('')
-  console.log('💡 Pool Discovery Info:')
-  console.log('   - Automatically finds WMON pairs with NADS 1% fee tier')
-  console.log('   - Uses V3 Factory: 0x961235a9020B05C44DF1026D956D1F4D78014276')
-  console.log('   - WMON Address: 0x760AfE86e5de5fa0Ee542fc7B7B713e1c5425701')
+
+  // Keep running indefinitely
+  await new Promise(() => {})
 }
 
 // Run the example
 if (require.main === module) {
-  runDexStreamExample().catch(error => {
-    console.error('\n💥 Example failed:', error)
+  main().catch(error => {
+    console.error('❌ Fatal error:', error)
     process.exit(1)
   })
 }
 
-export { runDexStreamExample }
+export { main as runDexStreamExample }

@@ -36,7 +36,7 @@ export enum CurveEventType {
   Sell = 'CurveSell',
   Sync = 'CurveSync',
   Lock = 'CurveTokenLocked',
-  Listed = 'CurveListed',
+  Listed = 'CurveTokenListed',
 }
 
 /**
@@ -44,7 +44,7 @@ export enum CurveEventType {
  * Used by: src/stream/curve/parser.ts, examples/stream/curve*.ts
  */
 export interface CreateEvent {
-  type: 'CurveCreate'
+  type: CurveEventType.Create
   blockNumber: number
   transactionHash: string
   transactionIndex: number
@@ -77,7 +77,7 @@ export interface CreateEvent {
  * Used by: src/stream/curve/parser.ts, examples/stream/curve*.ts
  */
 export interface BuyEvent {
-  type: 'CurveBuy'
+  type: CurveEventType.Buy
   blockNumber: number
   transactionHash: string
   transactionIndex: number
@@ -100,7 +100,7 @@ export interface BuyEvent {
  * Used by: src/stream/curve/parser.ts, examples/stream/curve*.ts
  */
 export interface SellEvent {
-  type: 'CurveSell'
+  type: CurveEventType.Sell
   blockNumber: number
   transactionHash: string
   transactionIndex: number
@@ -123,7 +123,7 @@ export interface SellEvent {
  * Used by: src/stream/curve/parser.ts, examples/stream/curve*.ts
  */
 export interface SyncEvent {
-  type: 'CurveSync'
+  type: CurveEventType.Sync
   blockNumber: number
   transactionHash: string
   transactionIndex: number
@@ -148,7 +148,7 @@ export interface SyncEvent {
  * Used by: src/stream/curve/parser.ts, examples/stream/curve*.ts
  */
 export interface LockEvent {
-  type: 'CurveTokenLocked'
+  type: CurveEventType.Lock
   blockNumber: number
   transactionHash: string
   transactionIndex: number
@@ -165,7 +165,7 @@ export interface LockEvent {
  * Used by: src/stream/curve/parser.ts, examples/stream/curve*.ts
  */
 export interface ListedEvent {
-  type: 'CurveListed'
+  type: CurveEventType.Listed
   blockNumber: number
   transactionHash: string
   transactionIndex: number

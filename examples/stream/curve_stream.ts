@@ -1,18 +1,29 @@
 /**
- * Bonding Curve Event Stream Example
+ * Bonding curve real-time streaming example
  *
- * Demonstrates how to use the SDK's built-in curve Stream class
- * for real-time bonding curve event monitoring.
+ * Demonstrates 3 different streaming scenarios:
+ * 1. All bonding curve events (all event types, all tokens)
+ * 2. Specific event types only
+ * 3. Specific tokens only
  *
  * Usage:
- * bun run example:curve-stream
+ * # Scenario 1: All events
+ * bun run example:curve-stream -- --ws-url wss://your-ws-url
+ *
+ * # Scenario 2: Specific events only (Buy/Sell)
+ * bun run example:curve-stream -- --ws-url wss://your-ws-url --events Buy,Sell
+ *
+ * # Scenario 3: Specific tokens only
+ * bun run example:curve-stream -- --ws-url wss://your-ws-url --tokens 0xToken1,0xToken2
+ *
+ * # Combined: Specific events AND tokens
+ * bun run example:curve-stream -- --ws-url wss://your-ws-url --events Buy,Sell --tokens 0xToken1
  */
 
 import { config } from 'dotenv'
-import { monadTestnet } from 'viem/chains'
-import { Stream as CurveStream } from '../../src/stream/curve/Stream'
-import { CurveEventType } from '../../src/types'
 import { parseArgs } from 'util'
+import { Stream as CurveStream } from '../../src/stream/curve/stream'
+import { CurveEventType, BondingCurveEvent } from '../../src/types'
 
 // Load environment variables
 config()
@@ -21,109 +32,218 @@ config()
 const { values: args } = parseArgs({
   args: process.argv.slice(2),
   options: {
-    'rpc-url': { type: 'string' },
-    token: { type: 'string' },
+    'ws-url': { type: 'string' },
+    events: { type: 'string' },
+    tokens: { type: 'string' },
   },
   allowPositionals: false,
 })
 
-const RPC_URL = args['rpc-url'] || process.env.RPC_URL || monadTestnet.rpcUrls.default.http[0]
-const TOKEN_ADDRESS =
-  args.token || process.env.TOKEN || '0xce3D002DD6ECc97a628ad04ffA59DA3D91a589B1'
+// Configuration
+const WS_URL = args['ws-url'] || process.env.WS_RPC_URL
+const EVENTS =
+  args.events?.split(',').map(e => e.trim()) ||
+  process.env.EVENTS?.split(',').map(e => e.trim()) ||
+  []
+const TOKENS =
+  args.tokens?.split(',').map(t => t.trim()) ||
+  process.env.TOKENS?.split(',').map(t => t.trim()) ||
+  []
 
 let eventCount = 0
 
-async function runCurveStreamExample() {
-  console.log('📊 NADS Fun SDK - Curve Stream Example\n')
+async function main() {
+  // Print configuration
+  console.log('📋 Configuration:')
+  console.log(`   WS URL: ${WS_URL}`)
+  if (EVENTS.length > 0) {
+    console.log(`   Events: ${EVENTS.join(', ')}`)
+  }
+  if (TOKENS.length > 0) {
+    console.log(`   Tokens: ${TOKENS.join(', ')}`)
+  }
+  console.log('')
+
+  if (!WS_URL) {
+    console.error('❌ WebSocket URL is required')
+    console.log('💡 Usage: --ws-url wss://your-ws-url')
+    process.exit(1)
+  }
 
   try {
-    // Create curve stream using SDK
-    const stream = new CurveStream(RPC_URL)
+    // Parse event types if provided
+    const eventFilter = EVENTS.length > 0 ? EVENTS.map(e => e as CurveEventType) : null
+    const tokenFilter = TOKENS.length > 0 ? TOKENS : null
 
-    console.log('📋 Configuration:')
-    console.log(`   Using SDK CurveStream class`)
-    console.log(`   Monitoring: Buy, Sell, Create events`)
-    if (TOKEN_ADDRESS) {
-      console.log(`   Token Filter: ${TOKEN_ADDRESS}`)
-    } else {
-      console.log(`   Token Filter: All tokens`)
+    // Determine scenario
+    if (!eventFilter && !tokenFilter) {
+      console.log('🌟 SCENARIO 1: All bonding curve events (all types, all tokens)')
+      await runAllEventsScenario(WS_URL)
+    } else if (eventFilter && !tokenFilter) {
+      console.log(`🎯 SCENARIO 2: Specific event types only: ${eventFilter.join(', ')}`)
+      await runSpecificEventsScenario(WS_URL, eventFilter)
+    } else if (!eventFilter && tokenFilter) {
+      console.log(`🏷️ SCENARIO 3: Specific tokens only: ${tokenFilter.length} tokens`)
+      await runSpecificTokensScenario(WS_URL, tokenFilter)
+    } else if (eventFilter && tokenFilter) {
+      console.log(
+        `🎯🏷️ COMBINED: Specific events ${eventFilter.join(', ')} AND ${tokenFilter.length} tokens`
+      )
+      await runCombinedScenario(WS_URL, eventFilter, tokenFilter)
     }
-    console.log('')
-
-    // Subscribe to specific events
-    stream.subscribeEvents([CurveEventType.Buy, CurveEventType.Sell, CurveEventType.Create])
-
-    // Filter by specific token if provided
-    if (TOKEN_ADDRESS) {
-      stream.filterTokens([TOKEN_ADDRESS])
-    }
-
-    // Set up event handler
-    const subscribe = stream.onEvent(event => {
-      eventCount++
-      console.log(`\n🎪 ${event.type} Event #${eventCount}`)
-      console.log(`   Block: ${event.blockNumber}`)
-      console.log(`   Token: ${event.token}`)
-      console.log(`   TX: ${event.transactionHash}`)
-
-      // Type-specific details
-      if (event.type === 'Buy' && 'sender' in event) {
-        console.log(`   Sender: ${event.sender}`)
-        console.log(`   Amount In: ${event.amountIn}`)
-        console.log(`   Amount Out: ${event.amountOut}`)
-      } else if (event.type === 'Sell' && 'sender' in event) {
-        console.log(`   Sender: ${event.sender}`)
-        console.log(`   Amount In: ${event.amountIn}`)
-        console.log(`   Amount Out: ${event.amountOut}`)
-      } else if (event.type === 'Create' && 'creator' in event) {
-        console.log(`   Creator: ${event.creator}`)
-        console.log(`   Pool: ${event.pool}`)
-        console.log(`   Name: ${event.name}`)
-        console.log(`   Symbol: ${event.symbol}`)
-      }
-    })
-
-    console.log('🚀 Starting curve stream...')
-    await stream.start()
-
-    console.log('✅ Stream active! Monitoring bonding curve events...')
-    console.log('💡 Execute buy/sell transactions to see live events')
-    console.log('⏳ Press Ctrl+C to stop')
-    console.log('')
-
-    // Show stats every 30 seconds
-    const statsInterval = setInterval(() => {
-      if (eventCount > 0) {
-        console.log(`📊 Events captured: ${eventCount}`)
-      } else {
-        console.log('⏳ Waiting for events...')
-      }
-    }, 30000)
-
-    // Graceful shutdown
-    process.on('SIGINT', () => {
-      console.log('\n🛑 Stopping stream...')
-      clearInterval(statsInterval)
-      subscribe()
-      stream.stop()
-      console.log(`📊 Final stats: ${eventCount} events captured`)
-      process.exit(0)
-    })
-
-    // Keep running
-    await new Promise(() => {})
   } catch (error) {
-    console.error('❌ Curve stream example failed:', error)
-    throw error
+    console.error('❌ Error:', error)
+    process.exit(1)
   }
+}
+
+// Scenario 1: All bonding curve events
+async function runAllEventsScenario(wsUrl: string) {
+  console.log('📡 Creating CurveStream for all events...')
+
+  const curveStream = new CurveStream(wsUrl)
+
+  const unsubscribe = curveStream.onEvent(event => {
+    handleEvent(event, 'ALL')
+  })
+
+  console.log('🔴 Listening for ALL bonding curve events...')
+  await curveStream.start()
+
+  setupGracefulShutdown(curveStream, unsubscribe)
+  await keepRunning()
+}
+
+// Scenario 2: Specific event types only
+async function runSpecificEventsScenario(wsUrl: string, eventTypes: CurveEventType[]) {
+  console.log('📡 Creating CurveStream for specific events...')
+
+  const curveStream = new CurveStream(wsUrl)
+  curveStream.subscribeEvents(eventTypes)
+
+  const unsubscribe = curveStream.onEvent(event => {
+    handleEvent(event, 'FILTERED_EVENTS')
+  })
+
+  console.log(`🎯 Listening for specific events: ${eventTypes.join(', ')}`)
+  await curveStream.start()
+
+  setupGracefulShutdown(curveStream, unsubscribe)
+  await keepRunning()
+}
+
+// Scenario 3: Specific tokens only
+async function runSpecificTokensScenario(wsUrl: string, monitoredTokens: string[]) {
+  console.log('📡 Creating CurveStream for specific tokens...')
+
+  const curveStream = new CurveStream(wsUrl)
+  curveStream.filterTokens(monitoredTokens)
+
+  const unsubscribe = curveStream.onEvent(event => {
+    handleEvent(event, 'FILTERED_TOKENS')
+  })
+
+  console.log(`🏷️ Listening for ${monitoredTokens.length} specific tokens`)
+  monitoredTokens.forEach((token, i) => {
+    console.log(`   ${i + 1}. ${token}`)
+  })
+
+  await curveStream.start()
+
+  setupGracefulShutdown(curveStream, unsubscribe)
+  await keepRunning()
+}
+
+// Combined scenario: Specific events AND tokens
+async function runCombinedScenario(
+  wsUrl: string,
+  eventTypes: CurveEventType[],
+  monitoredTokens: string[]
+) {
+  console.log('📡 Creating CurveStream for specific events AND tokens...')
+
+  const curveStream = new CurveStream(wsUrl)
+  curveStream.subscribeEvents(eventTypes)
+  curveStream.filterTokens(monitoredTokens)
+
+  const unsubscribe = curveStream.onEvent(event => {
+    handleEvent(event, 'COMBINED_FILTER')
+  })
+
+  console.log(
+    `🎯🏷️ Listening for ${eventTypes.join(', ')} events on ${monitoredTokens.length} tokens`
+  )
+  await curveStream.start()
+
+  setupGracefulShutdown(curveStream, unsubscribe)
+  await keepRunning()
+}
+
+function handleEvent(event: BondingCurveEvent, scenario: string) {
+  eventCount++
+  console.log(
+    `🎉 [${scenario}] ${event.type} event for token ${event.token} | Block: ${event.blockNumber} | TX: ${event.transactionHash}`
+  )
+
+  switch (event.type) {
+    case CurveEventType.Create:
+      console.log('   ✨ New token created!')
+      break
+    case CurveEventType.Buy:
+      console.log('   💰 Buy transaction detected')
+      break
+    case CurveEventType.Sell:
+      console.log('   💸 Sell transaction detected')
+      break
+    case CurveEventType.Sync:
+      console.log('   🔄 Sync event')
+      break
+    case CurveEventType.Lock:
+      console.log('   🔒 Lock event')
+      break
+    case CurveEventType.Listed:
+      console.log('   🚀 Token listed on DEX!')
+      break
+  }
+}
+
+function setupGracefulShutdown(stream: CurveStream, unsubscribe: () => void) {
+  // Show stats every 30 seconds
+  const statsInterval = setInterval(() => {
+    if (eventCount > 0) {
+      console.log(`📊 Events captured: ${eventCount}`)
+    } else {
+      console.log('⏳ Waiting for events...')
+    }
+  }, 30000)
+
+  // Graceful shutdown
+  process.on('SIGINT', () => {
+    console.log('\n🛑 Stopping stream...')
+    clearInterval(statsInterval)
+    unsubscribe()
+    stream.stop()
+    console.log(`📊 Final stats: ${eventCount} events captured`)
+    process.exit(0)
+  })
+}
+
+async function keepRunning() {
+  console.log('✅ Stream active! Monitoring bonding curve events...')
+  console.log('💡 Execute buy/sell transactions to see live events')
+  console.log('⏳ Press Ctrl+C to stop')
+  console.log('')
+
+  // Keep running indefinitely
+  await new Promise(() => {})
 }
 
 // Run the example
 if (require.main === module) {
-  runCurveStreamExample().catch(error => {
-    console.error('\n💥 Example failed:', error)
+  main().catch(error => {
+    console.error('❌ Fatal error:', error)
     process.exit(1)
   })
 }
 
-export { runCurveStreamExample }
+export { main as runCurveStreamExample }

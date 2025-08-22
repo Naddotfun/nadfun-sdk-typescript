@@ -1,6 +1,160 @@
-# Changelog
+# GITHUB_RELEASE_NOTES
 
-All notable changes to this project will be documented in this file.
+## v0.2.5 - Enhanced Examples and Documentation
+
+### 🚀 Major Features
+
+**Restructured Examples for Better Developer Experience**
+
+- **Scenario-based Streaming**: Reorganized `curve_stream.ts` and `dex_stream.ts` with multiple scenarios (all events, filtered events, filtered tokens, combined)
+- **Unified Example Structure**: All examples now follow consistent patterns matching Rust SDK structure
+- **Enhanced Token Operations**: Split token utilities into `basic_operations.ts` and `permit_signature.ts` for clearer separation of concerns
+- **Pool Discovery Example**: New `pool_discovery.ts` example for automated Uniswap V3 pool detection
+
+### ✨ New Features
+
+**Enhanced Streaming Examples**
+
+- **Curve Stream Scenarios**: 4 distinct scenarios - all events, event filtering, token filtering, combined filtering
+- **DEX Stream Scenarios**: 3 scenarios - direct pool monitoring, token pool discovery, single token discovery
+- **Historical Indexing**: Improved `curve_indexer.ts` and `dex_indexer.ts` with batch processing demonstrations
+- **Real-time Filtering**: Support for `--events` and `--tokens` CLI arguments for precise event monitoring
+
+**Improved Token Examples**
+
+- **Basic Operations**: New `basic_operations.ts` covering metadata, balances, allowances, transfers
+- **Permit Signatures**: Dedicated `permit_signature.ts` for EIP-2612 gasless approvals
+- **Health Checks**: Token contract validation and permit support detection
+- **Safety Features**: Transaction execution commented out by default for safety
+
+### 🔧 API Changes
+
+**Transport Layer Updates**
+
+```typescript
+// NEW (v0.2.5) - Explicit transport specification
+// WebSocket transport for real-time streaming
+const curveStream = new CurveStream(wsUrl) // Uses webSocket(wsUrl) internally
+const dexStream = new DexStream(wsUrl, pools) // Uses webSocket(wsUrl) internally
+
+// HTTP transport for historical indexing
+const curveIndexer = new CurveIndexer(rpcUrl) // Uses http(rpcUrl) internally
+const dexIndexer = new DexIndexer(rpcUrl, pools) // Uses http(rpcUrl) internally
+
+// Internal viem client configuration
+createPublicClient({
+  chain: monadTestnet,
+  //If Stream
+  transport: webSocket(wsUrl),
+  //If Indexer
+  transport: http(rpcUrl),
+})
+```
+
+**New Example Files**
+
+```typescript
+// New token examples
+examples / token / basic_operations.ts // Replaces token_utils.ts
+examples / token / permit_signature.ts // New dedicated permit example
+
+// New streaming example
+examples / stream / pool_discovery.ts // Automated pool discovery utility
+```
+
+**Updated Stream APIs**
+
+```typescript
+// Enhanced filtering capabilities
+curveStream.subscribeEvents([CurveEventType.Buy, CurveEventType.Sell])
+curveStream.filterTokens(['0xToken1', '0xToken2'])
+
+// Simplified pool discovery
+const stream = await DexStream.discoverPoolsForTokens(wsUrl, tokens)
+```
+
+### ⚠️ Migration Guide
+
+**For Users Upgrading from v0.2.4:**
+
+1. **Update Token Example Imports**:
+
+```typescript
+// OLD (v0.2.4)
+import { executeTokenUtilsExample } from './examples/token/token_utils'
+
+// NEW (v0.2.5)
+import { executeTokenUtilsExample } from './examples/token/basic_operations'
+```
+
+2. **Use New Streaming Patterns**:
+
+```typescript
+// OLD (v0.2.4) - Single pattern
+const stream = new CurveStream(wsUrl)
+
+// NEW (v0.2.5) - Scenario-based
+// Scenario 1: All events
+// Scenario 2: Filtered events (--events Buy,Sell)
+// Scenario 3: Filtered tokens (--tokens 0xToken1,0xToken2)
+// Scenario 4: Combined (--events Buy,Sell --tokens 0xToken1)
+```
+
+3. **Leverage Pool Discovery**:
+
+```typescript
+// NEW (v0.2.5)
+bun run example:pool-discovery -- --tokens 0xToken1,0xToken2
+```
+
+### 🔍 Examples
+
+**New Examples Structure**:
+
+```bash
+# Token operations
+bun run example:basic-operations   # Basic ERC-20 operations
+bun run example:permit-signature   # EIP-2612 permit signatures
+
+# Streaming with scenarios
+bun run example:curve-stream -- --events Buy,Sell --tokens 0xToken1
+bun run example:dex-stream -- --pools 0xPool1,0xPool2
+
+# Pool discovery
+bun run example:pool-discovery -- --tokens 0xToken1,0xToken2
+```
+
+**Enhanced CLI Arguments**:
+
+- `--events <TYPES>`: Filter by event types (Create,Buy,Sell,Sync,Lock,Listed)
+- `--tokens <ADDRS>`: Filter by token addresses
+- `--pools <ADDRS>`: Specify pool addresses directly
+- `--recipient <ADDR>`: Required for token transfer examples
+
+### 🏆 Benefits
+
+- **Better Organization**: Clear separation between basic operations and advanced features
+- **Improved Discoverability**: Scenario-based examples make it easier to find relevant code
+- **Production Ready**: Examples include safety features and error handling
+- **Consistent Structure**: All examples follow the same pattern as Rust SDK
+
+### 📦 Installation
+
+```json
+{
+  "dependencies": {
+    "@nadfun/sdk": "^0.2.5"
+  }
+}
+```
+
+---
+
+# Previous Changelog
+
+## [0.2.4]
+
+- Update
 
 ## [0.2.4]
 
