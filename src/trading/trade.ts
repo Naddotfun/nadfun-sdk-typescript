@@ -112,7 +112,9 @@ export class Trade {
       amountOutMin: params.amountOutMin,
       token: params.token,
       to: params.to,
-      deadline: BigInt(params.deadline) || BigInt(Math.floor(Date.now() / 1000) + 3600),
+      deadline: params.deadline
+        ? BigInt(params.deadline)
+        : BigInt(Math.floor(Date.now() / 1000) + 3600),
     }
     const callData = encodeFunctionData({
       abi: routerAbi,
@@ -144,7 +146,9 @@ export class Trade {
       amountOutMin: params.amountOutMin,
       token: params.token,
       to: params.to,
-      deadline: BigInt(params.deadline) || BigInt(Math.floor(Date.now() / 1000) + 3600),
+      deadline: params.deadline
+        ? BigInt(params.deadline)
+        : BigInt(Math.floor(Date.now() / 1000) + 3600),
     }
 
     const sellData = encodeFunctionData({
