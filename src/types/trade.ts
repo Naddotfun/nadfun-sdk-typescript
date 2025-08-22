@@ -78,7 +78,6 @@ export interface SellPermitParams extends SellParams {
   v: number
   r: `0x${string}`
   s: `0x${string}`
-  nonce?: number
 }
 
 /**
