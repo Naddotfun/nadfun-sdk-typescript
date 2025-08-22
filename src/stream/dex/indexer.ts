@@ -1,5 +1,5 @@
 import type { Address, PublicClient, Log } from 'viem'
-import { createPublicClient, http, webSocket } from 'viem'
+import { createPublicClient, http } from 'viem'
 import { SwapEvent } from '@/types'
 import { parseSwapEvent, sortEventsChronologically } from './parser'
 import { v3factoryAbi } from '@/abis/v3factory'
@@ -15,19 +15,12 @@ export class Indexer {
   private readonly poolAddresses: Address[]
 
   constructor(rpcUrl: string, poolAddresses: Address[]) {
-    if (rpcUrl.startsWith('wss:')) {
-      const client = createPublicClient({
-        chain: CURRENT_CHAIN,
-        transport: webSocket(rpcUrl),
-      })
-      this.publicClient = client
-    } else {
-      const client = createPublicClient({
-        chain: CURRENT_CHAIN,
-        transport: http(rpcUrl),
-      })
-      this.publicClient = client
-    }
+    const client = createPublicClient({
+      chain: CURRENT_CHAIN,
+      transport: http(rpcUrl),
+    })
+    this.publicClient = client
+
     this.poolAddresses = poolAddresses
   }
 

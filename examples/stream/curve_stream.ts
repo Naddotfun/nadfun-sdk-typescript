@@ -59,7 +59,7 @@ async function runCurveStreamExample() {
     }
 
     // Set up event handler
-    const unsubscribe = stream.onEvent(event => {
+    const subscribe = stream.onEvent(event => {
       eventCount++
       console.log(`\n🎪 ${event.type} Event #${eventCount}`)
       console.log(`   Block: ${event.blockNumber}`)
@@ -104,7 +104,7 @@ async function runCurveStreamExample() {
     process.on('SIGINT', () => {
       console.log('\n🛑 Stopping stream...')
       clearInterval(statsInterval)
-      unsubscribe()
+      subscribe()
       stream.stop()
       console.log(`📊 Final stats: ${eventCount} events captured`)
       process.exit(0)

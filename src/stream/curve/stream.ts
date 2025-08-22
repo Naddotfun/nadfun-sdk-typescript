@@ -1,7 +1,7 @@
 import { CurveEventType, BondingCurveEvent } from '@/types'
 import { CONTRACTS, CURRENT_CHAIN } from '@/constants'
 import { parseBondingCurveEvent } from './parser'
-import { type PublicClient, type Log, createPublicClient, http, webSocket } from 'viem'
+import { type PublicClient, type Log, createPublicClient, http } from 'viem'
 
 /**
  * Bonding curve event stream with 2-stage filtering
@@ -20,19 +20,12 @@ export class Stream {
   private reconnectDelay: number = 1000
 
   constructor(rpcUrl: string) {
-    if (rpcUrl.startsWith('wss:')) {
-      const client = createPublicClient({
-        chain: CURRENT_CHAIN,
-        transport: webSocket(rpcUrl),
-      })
-      this.client = client
-    } else {
-      const client = createPublicClient({
-        chain: CURRENT_CHAIN,
-        transport: http(rpcUrl),
-      })
-      this.client = client
-    }
+    const client = createPublicClient({
+      chain: CURRENT_CHAIN,
+      transport: http(rpcUrl),
+    })
+    this.client = client
+
     this.bondingCurveAddress = CONTRACTS.MONAD_TESTNET.CURVE
 
     this.eventTypes = []
@@ -75,7 +68,6 @@ export class Stream {
     const id = Math.random().toString(36).substring(7)
     this.listeners.set(id, callback)
 
-    // Return unsubscribe function
     return () => {
       this.listeners.delete(id)
     }

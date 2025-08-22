@@ -49,7 +49,7 @@ curveStream.filterTokens([
 ])
 
 // Add event listener
-const unsubscribe = curveStream.onEvent(event => {
+const subscribe = curveStream.onEvent(event => {
   console.log('New event:', event)
 })
 
@@ -58,7 +58,6 @@ await curveStream.start()
 
 // Stop later
 curveStream.stop()
-unsubscribe() // Remove listener
 ```
 
 ### 2. DEX Swap Stream
@@ -79,7 +78,7 @@ const dexStreamHttp = await DexStream.createHttp(
 )
 
 // Listen for swap events
-const unsubscribe = dexStream.onSwap(swapEvent => {
+const subscribe = dexStream.onSwap(swapEvent => {
   console.log('Swap occurred:', {
     pool: swapEvent.pool,
     amount0: swapEvent.amount0,
@@ -126,9 +125,6 @@ console.log('DEX config:', dexConfig)
 ### Transport Options
 
 ```typescript
-// WebSocket with auto-fallback to HTTP
-const stream = await DexStream.createWebSocket('wss://testnet-rpc.monad.xyz', pools)
-
 // HTTP only (more reliable)
 const stream = await DexStream.createHttp('https://testnet-rpc.monad.xyz', pools)
 

@@ -236,7 +236,7 @@ const curveStream = new CurveStream('https://your-rpc-endpoint')
 curveStream.subscribeEvents([CurveEventType.Buy, CurveEventType.Sell]).filterTokens([tokenAddress])
 
 // Subscribe and process events
-const unsubscribe = await curveStream.subscribe(
+const subscribe = await curveStream.subscribe(
   (event: BondingCurveEvent) => {
     console.log(`Event: ${event.eventType} for token ${event.token}`)
   },
@@ -245,7 +245,7 @@ const unsubscribe = await curveStream.subscribe(
   }
 )
 
-// Later: unsubscribe()
+// Later: subscribe()
 ```
 
 #### DEX Swap Streaming
@@ -259,7 +259,7 @@ const dexStream = await DexStream.discoverPoolsForTokens('https://your-rpc-endpo
 ])
 
 // Subscribe and process events
-const unsubscribe = await dexStream.subscribe(
+const subscribe = await dexStream.subscribe(
   event => {
     console.log(`Swap in pool ${event.poolAddress}: ${event.amount0} -> ${event.amount1}`)
   },
@@ -545,10 +545,10 @@ bun run example:dex-stream -- --token 0xTokenAddress --rpc-url https://your-rpc-
 
 - `CurveStream`: Bonding curve event streaming
   - Methods: `.subscribeEvents()`, `.filterTokens()`, `.subscribe()`
-  - Returns: Subscription with unsubscribe function
+  - Returns: Subscription with subscribe function
 - `DexStream`: DEX swap event streaming
   - Methods: `.new()`, `.discoverPoolsForTokens()`, `.discoverPoolForToken()`, `.subscribe()`
-  - Returns: Subscription with unsubscribe function
+  - Returns: Subscription with subscribe function
 
 ### Trading Types
 

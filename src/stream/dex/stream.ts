@@ -1,4 +1,4 @@
-import { createPublicClient, http, webSocket, parseEventLogs, type Log } from 'viem'
+import { createPublicClient, http, parseEventLogs, type Log } from 'viem'
 import { DexEventType, SwapEvent } from '@/types'
 import { v3PoolAbi } from '@/abis/v3pool'
 import { v3factoryAbi } from '@/abis/v3factory'
@@ -20,19 +20,11 @@ export class Stream {
   private reconnectDelay: number = 1000
 
   constructor(rpcUrl: string, poolAddresses: Address[]) {
-    if (rpcUrl.startsWith('wss:')) {
-      const client = createPublicClient({
-        chain: CURRENT_CHAIN,
-        transport: webSocket(rpcUrl),
-      })
-      this.client = client
-    } else {
-      const client = createPublicClient({
-        chain: CURRENT_CHAIN,
-        transport: http(rpcUrl),
-      })
-      this.client = client
-    }
+    const client = createPublicClient({
+      chain: CURRENT_CHAIN,
+      transport: http(rpcUrl),
+    })
+    this.client = client
 
     this.poolAddresses = poolAddresses
   }
@@ -128,7 +120,6 @@ export class Stream {
     const id = Math.random().toString(36).substring(7)
     this.listeners.set(id, callback)
 
-    // Return unsubscribe function
     return () => {
       this.listeners.delete(id)
     }

@@ -1,5 +1,5 @@
 import type { PublicClient, Log } from 'viem'
-import { createPublicClient, http, webSocket } from 'viem'
+import { createPublicClient, http } from 'viem'
 import { CurveEventType, BondingCurveEvent } from '@/types'
 import { CONTRACTS, CURRENT_CHAIN } from '@/constants'
 import { parseBondingCurveEvent, sortEventsChronologically } from './parser'
@@ -14,19 +14,12 @@ export class Indexer {
   private readonly bondingCurveAddress: string
 
   constructor(rpcUrl: string) {
-    if (rpcUrl.startsWith('wss:')) {
-      const client = createPublicClient({
-        chain: CURRENT_CHAIN,
-        transport: webSocket(rpcUrl),
-      })
-      this.publicClient = client
-    } else {
-      const client = createPublicClient({
-        chain: CURRENT_CHAIN,
-        transport: http(rpcUrl),
-      })
-      this.publicClient = client
-    }
+    const client = createPublicClient({
+      chain: CURRENT_CHAIN,
+      transport: http(rpcUrl),
+    })
+    this.publicClient = client
+
     this.bondingCurveAddress = CONTRACTS.MONAD_TESTNET.CURVE
   }
 
