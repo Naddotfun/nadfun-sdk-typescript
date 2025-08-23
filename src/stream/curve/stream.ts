@@ -36,19 +36,8 @@ export class Stream {
    * If empty array is passed, subscribes to all event types
    */
   subscribeEvents(eventTypes: CurveEventType[]): Stream {
-    if (eventTypes.length === 0) {
-      // Empty array means subscribe to all events
-      this.eventTypes = [
-        CurveEventType.Create,
-        CurveEventType.Buy,
-        CurveEventType.Sell,
-        CurveEventType.Sync,
-        CurveEventType.Lock,
-        CurveEventType.Listed,
-      ]
-    } else {
-      this.eventTypes = eventTypes
-    }
+    this.eventTypes = eventTypes
+
     return this
   }
 
@@ -97,7 +86,14 @@ export class Stream {
       console.warn(
         '⚠️ No event types specified. Call subscribeEvents() first or pass empty array to subscribe to all events.'
       )
-      return
+      this.subscribeEvents([
+        CurveEventType.Create,
+        CurveEventType.Buy,
+        CurveEventType.Sell,
+        CurveEventType.Sync,
+        CurveEventType.Lock,
+        CurveEventType.Listed,
+      ])
     }
 
     console.log(`🎯 Starting bonding curve stream`)

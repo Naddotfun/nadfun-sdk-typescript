@@ -103,14 +103,14 @@ async function runAllEventsScenario(wsUrl: string) {
 
   const curveStream = new CurveStream(wsUrl)
 
-  const unsubscribe = curveStream.onEvent(event => {
+  const onEvent = curveStream.onEvent(event => {
     handleEvent(event, 'ALL')
   })
 
   console.log('🔴 Listening for ALL bonding curve events...')
   await curveStream.start()
 
-  setupGracefulShutdown(curveStream, unsubscribe)
+  setupGracefulShutdown(curveStream, onEvent)
   await keepRunning()
 }
 
@@ -121,14 +121,14 @@ async function runSpecificEventsScenario(wsUrl: string, eventTypes: CurveEventTy
   const curveStream = new CurveStream(wsUrl)
   curveStream.subscribeEvents(eventTypes)
 
-  const unsubscribe = curveStream.onEvent(event => {
+  const onEvent = curveStream.onEvent(event => {
     handleEvent(event, 'FILTERED_EVENTS')
   })
 
   console.log(`🎯 Listening for specific events: ${eventTypes.join(', ')}`)
   await curveStream.start()
 
-  setupGracefulShutdown(curveStream, unsubscribe)
+  setupGracefulShutdown(curveStream, onEvent)
   await keepRunning()
 }
 
@@ -139,7 +139,7 @@ async function runSpecificTokensScenario(wsUrl: string, monitoredTokens: string[
   const curveStream = new CurveStream(wsUrl)
   curveStream.filterTokens(monitoredTokens)
 
-  const unsubscribe = curveStream.onEvent(event => {
+  const onEvent = curveStream.onEvent(event => {
     handleEvent(event, 'FILTERED_TOKENS')
   })
 
@@ -150,7 +150,7 @@ async function runSpecificTokensScenario(wsUrl: string, monitoredTokens: string[
 
   await curveStream.start()
 
-  setupGracefulShutdown(curveStream, unsubscribe)
+  setupGracefulShutdown(curveStream, onEvent)
   await keepRunning()
 }
 
@@ -166,7 +166,7 @@ async function runCombinedScenario(
   curveStream.subscribeEvents(eventTypes)
   curveStream.filterTokens(monitoredTokens)
 
-  const unsubscribe = curveStream.onEvent(event => {
+  const onEvent = curveStream.onEvent(event => {
     handleEvent(event, 'COMBINED_FILTER')
   })
 
@@ -175,7 +175,7 @@ async function runCombinedScenario(
   )
   await curveStream.start()
 
-  setupGracefulShutdown(curveStream, unsubscribe)
+  setupGracefulShutdown(curveStream, onEvent)
   await keepRunning()
 }
 
@@ -230,7 +230,7 @@ function setupGracefulShutdown(stream: CurveStream, unsubscribe: () => void) {
 
 async function keepRunning() {
   console.log('✅ Stream active! Monitoring bonding curve events...')
-  console.log('💡 Execute buy/sell transactions to see live events')
+  console.log('💡 Execute transactions on the bonding curve to see live events')
   console.log('⏳ Press Ctrl+C to stop')
   console.log('')
 

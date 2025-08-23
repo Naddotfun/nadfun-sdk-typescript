@@ -223,7 +223,7 @@ curveStream.subscribeEvents([CurveEventType.Buy, CurveEventType.Sell])
 curveStream.filterTokens([tokenAddress])
 
 // Subscribe and process events
-const unsubscribe = curveStream.onEvent(event => {
+const onEvent = curveStream.onEvent(event => {
   console.log(`Event: ${event.type} for token ${event.token}`)
 })
 
