@@ -119,13 +119,7 @@ export class Stream {
         },
         onError: error => {
           console.error('❌ Error in bonding curve stream:', error)
-          this.handleReconnection()
         },
-      }
-
-      // Only add poll property for HTTP transport
-      if (this.client.transport.type === 'http') {
-        watchConfig.poll = true
       }
 
       // Use viem's watchEvent - it automatically handles HTTP vs polling
@@ -134,7 +128,6 @@ export class Stream {
       console.log('✅ Bonding curve stream started successfully')
     } catch (error) {
       console.error('❌ Failed to start bonding curve stream:', error)
-      this.handleReconnection()
     }
   }
 
@@ -170,41 +163,6 @@ export class Stream {
       } catch (error) {
         console.error('❌ Error processing bonding curve event:', error)
       }
-    }
-  }
-
-  /**
-   * Handle reconnection logic
-   */
-  private handleReconnection(): void {
-    if (!this.isRunning) return
-
-    // Stop current watcher
-    if (this.watchFn) {
-      try {
-        this.watchFn()
-        this.watchFn = null
-      } catch (error) {
-        console.error('❌ Error stopping current watcher:', error)
-      }
-    }
-
-    if (this.reconnectAttempts < this.maxReconnectAttempts) {
-      this.reconnectAttempts++
-      const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1)
-
-      console.log(
-        `🔄 Attempting to reconnect bonding curve stream (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts}) in ${delay}ms`
-      )
-
-      setTimeout(() => {
-        if (this.isRunning) {
-          this.startWatching()
-        }
-      }, delay)
-    } else {
-      console.error(`❌ Max reconnection attempts reached for bonding curve stream`)
-      // Optionally emit an error event or call a callback
     }
   }
 

@@ -160,7 +160,6 @@ export class Stream {
         },
         onError: error => {
           console.error(`❌ Error watching pool ${poolAddress}:`, error)
-          this.handleReconnection(poolAddress)
         },
       }
 
@@ -176,7 +175,6 @@ export class Stream {
       this.watchFunctions.push(watch)
     } catch (error) {
       console.error(`❌ Failed to start watching pool ${poolAddress}:`, error)
-      this.handleReconnection(poolAddress)
     }
   }
 
@@ -245,31 +243,6 @@ export class Stream {
       }
     }
   }
-
-  /**
-   * Handle reconnection logic
-   */
-  private handleReconnection(poolAddress: Address): void {
-    if (!this.isRunning) return
-
-    if (this.reconnectAttempts < this.maxReconnectAttempts) {
-      this.reconnectAttempts++
-      const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1)
-
-      console.log(
-        `🔄 Attempting to reconnect pool ${poolAddress} (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts}) in ${delay}ms`
-      )
-
-      setTimeout(() => {
-        if (this.isRunning) {
-          this.watchPoolEvents(poolAddress)
-        }
-      }, delay)
-    } else {
-      console.error(`❌ Max reconnection attempts reached for pool ${poolAddress}`)
-    }
-  }
-
   /**
    * Stop streaming events
    */
