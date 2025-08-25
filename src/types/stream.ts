@@ -25,23 +25,6 @@ export interface BaseEvent {
 }
 
 /**
- * Generic stream configuration
- * Used by: Stream constructors, stream initialization
- */
-export interface StreamConfig {
-  /** RPC URL for historical data and fallbacks (optional) */
-  rpcUrl?: string
-  /** Specific contract addresses to monitor (optional) */
-  addresses?: Address[]
-  /** Starting block for historical streaming (optional) */
-  fromBlock?: number | 'latest'
-  /** Ending block for historical streaming (optional) */
-  toBlock?: number | 'latest'
-  /** Number of blocks to process in each batch (optional) */
-  batchSize?: number
-}
-
-/**
  * Generic event filter configuration
  * Used by: Stream filtering, event subscription setup
  */
@@ -63,20 +46,3 @@ export type EventHandler<T> = (event: T) => void
  * Used by: Stream.on('error', handler), error handling callbacks
  */
 export type ErrorHandler = (error: Error) => void
-
-/**
- * Stream connection status
- * Used by: Stream status tracking, connection monitoring
- */
-export enum StreamStatus {
-  /** Stream is not connected */
-  Disconnected = 'disconnected',
-  /** Stream is attempting to connect */
-  Connecting = 'connecting',
-  /** Stream is connected and active */
-  Connected = 'connected',
-  /** Stream has encountered an error */
-  Error = 'error',
-  /** Stream has been stopped */
-  Stopped = 'stopped',
-}

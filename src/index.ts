@@ -31,12 +31,11 @@ export type {
   DexEvent,
   // Stream types
   BaseEvent,
-  StreamConfig,
   EventFilter,
 } from './types'
 
 // Export enums
-export { CurveEventType, DexEventType, StreamStatus, RouterType } from './types'
+export { CurveEventType, DexEventType, RouterType } from './types'
 
 // Utils
 export {

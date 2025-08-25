@@ -43,10 +43,7 @@ export type { BaseDexEvent, SwapEvent, PoolMetadata, PoolDiscoveryResult, DexEve
 export { DexEventType } from './dex'
 
 // Stream common types
-export type { BaseEvent, StreamConfig, EventFilter, EventHandler, ErrorHandler } from './stream'
-
-// Export stream enums
-export { StreamStatus } from './stream'
+export type { BaseEvent, EventFilter, EventHandler, ErrorHandler } from './stream'
 
 /**
  * Re-export everything for convenience
