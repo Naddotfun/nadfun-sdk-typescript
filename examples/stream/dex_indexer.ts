@@ -43,6 +43,7 @@ const POOL_ADDRESSES = (args.pools?.split(',').map(p => p.trim()) || []) as `0x$
 const TOKEN_ADDRESSES =
   args.tokens?.split(',').map(t => t.trim()) ||
   process.env.TOKENS?.split(',').map(t => t.trim()) ||
+  process.env.TOKEN?.split(',').map(t => t.trim()) ||
   []
 
 async function main() {

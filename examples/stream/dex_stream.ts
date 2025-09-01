@@ -47,7 +47,7 @@ const TOKENS =
   args.tokens?.split(',').map(t => t.trim()) ||
   process.env.TOKENS?.split(',').map(t => t.trim()) ||
   []
-const SINGLE_TOKEN = args.token
+const SINGLE_TOKEN = args.token || process.env.TOKEN
 
 let swapCount = 0
 
