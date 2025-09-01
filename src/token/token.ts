@@ -96,7 +96,8 @@ export class Token {
     }
 
     const tx = await this.walletClient.writeContract(txParams)
-    return tx
+    const receipt = await this.publicClient.waitForTransactionReceipt({ hash: tx })
+    return receipt.transactionHash
   }
 
   async transfer(
@@ -119,7 +120,8 @@ export class Token {
     }
 
     const tx = await this.walletClient.writeContract(txParams)
-    return tx
+    const receipt = await this.publicClient.waitForTransactionReceipt({ hash: tx })
+    return receipt.transactionHash
   }
 
   async getBalanceFormatted(token: Address, address?: Address): Promise<[bigint, string]> {
@@ -354,7 +356,8 @@ export class Token {
       chain: CURRENT_CHAIN,
     })
 
-    return tx
+    const receipt = await this.publicClient.waitForTransactionReceipt({ hash: tx })
+    return receipt.transactionHash
   }
 
   /**
@@ -389,7 +392,8 @@ export class Token {
       chain: CURRENT_CHAIN,
     })
 
-    return tx
+    const receipt = await this.publicClient.waitForTransactionReceipt({ hash: tx })
+    return receipt.transactionHash
   }
 
   /**

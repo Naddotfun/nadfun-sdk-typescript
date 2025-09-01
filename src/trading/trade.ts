@@ -133,7 +133,8 @@ export class Trade {
       chain: CURRENT_CHAIN,
     })
 
-    return tx
+    const receipt = await this.publicClient.waitForTransactionReceipt({ hash: tx })
+    return receipt.transactionHash
   }
 
   /**
@@ -167,7 +168,8 @@ export class Trade {
       chain: CURRENT_CHAIN,
     })
 
-    return tx
+    const receipt = await this.publicClient.waitForTransactionReceipt({ hash: tx })
+    return receipt.transactionHash
   }
 
   /**
@@ -202,7 +204,8 @@ export class Trade {
       chain: CURRENT_CHAIN,
     })
 
-    return tx
+    const receipt = await this.publicClient.waitForTransactionReceipt({ hash: tx })
+    return receipt.transactionHash
   }
 
   async getAvailableBuyTokens(token: Address): Promise<AvailableBuyTokens> {
