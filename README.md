@@ -325,7 +325,7 @@ bun run example:gas-estimation -- --private-key your_private_key_here --rpc-url 
 ### Token Examples
 
 ```bash
-bun run example:basic-operations  # Basic ERC-20 operations
+bun run example:basic-operation  # Basic ERC-20 operations
 bun run example:permit-signature  # EIP-2612 permit signatures
 ```
 
@@ -483,7 +483,7 @@ bun run example:sell-permit -- \
   --token 0xYourTokenAddress
 
 # Example with recipient (for token operations)
-bun run example:basic-operations -- \
+bun run example:basic-operation -- \
   --private-key your_private_key_here \
   --rpc-url https://your-rpc-endpoint \
   --token 0xYourTokenAddress \

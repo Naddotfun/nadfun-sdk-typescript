@@ -14,10 +14,10 @@
  * export RPC_URL="https://your-rpc-url"
  * export TOKEN="0xTokenAddress"
  * export RECIPIENT="0xRecipientAddress"
- * bun run example:token-utils
+ * bun run example:basic-operation
  *
  * # Using command line arguments
- * bun run example:token-utils -- --private-key your_private_key_here --rpc-url https://your-rpc-url --token 0xTokenAddress --recipient 0xRecipientAddress
+ * bun run example:basic-operation -- --private-key your_private_key_here --rpc-url https://your-rpc-url --token 0xTokenAddress --recipient 0xRecipientAddress
  */
 
 import { config } from 'dotenv'

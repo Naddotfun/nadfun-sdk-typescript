@@ -40,12 +40,26 @@ const { values: args } = parseArgs({
 // Configuration
 const WS_URL = args['ws-url'] || process.env.WS_RPC_URL
 const POOLS =
-  args.pools?.split(',').map(p => p.trim()) ||
-  process.env.POOLS?.split(',').map(p => p.trim()) ||
+  args.pools
+    ?.split(',')
+    .map(p => p.trim())
+    .filter(p => p) ||
+  (process.env.POOLS
+    ? process.env.POOLS.split(',')
+        .map(p => p.trim())
+        .filter(p => p)
+    : []) ||
   []
 const TOKENS =
-  args.tokens?.split(',').map(t => t.trim()) ||
-  process.env.TOKENS?.split(',').map(t => t.trim()) ||
+  args.tokens
+    ?.split(',')
+    .map(t => t.trim())
+    .filter(t => t) ||
+  (process.env.TOKENS
+    ? process.env.TOKENS.split(',')
+        .map(t => t.trim())
+        .filter(t => t)
+    : []) ||
   []
 const SINGLE_TOKEN = args.token || process.env.TOKEN
 
