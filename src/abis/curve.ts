@@ -1,19 +1,6 @@
 export const curveAbi = [
   {
     type: 'function',
-    name: 'authorize',
-    inputs: [],
-    outputs: [
-      {
-        name: '',
-        type: 'address',
-        internalType: 'address',
-      },
-    ],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
     name: 'buy',
     inputs: [
       {
@@ -26,13 +13,14 @@ export const curveAbi = [
         type: 'address',
         internalType: 'address',
       },
+    ],
+    outputs: [
       {
         name: 'amountOut',
         type: 'uint256',
         internalType: 'uint256',
       },
     ],
-    outputs: [],
     stateMutability: 'nonpayable',
   },
   {
@@ -106,6 +94,16 @@ export const curveAbi = [
             type: 'string',
             internalType: 'string',
           },
+          {
+            name: 'salt',
+            type: 'bytes32',
+            internalType: 'bytes32',
+          },
+          {
+            name: 'actionId',
+            type: 'uint8',
+            internalType: 'uint8',
+          },
         ],
       },
     ],
@@ -122,6 +120,25 @@ export const curveAbi = [
       },
     ],
     stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    name: 'createdAt',
+    inputs: [
+      {
+        name: 'token',
+        type: 'address',
+        internalType: 'address',
+      },
+    ],
+    outputs: [
+      {
+        name: '',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
+    ],
+    stateMutability: 'view',
   },
   {
     type: 'function',
@@ -179,7 +196,30 @@ export const curveAbi = [
   },
   {
     type: 'function',
-    name: 'factory',
+    name: 'feeConfig',
+    inputs: [],
+    outputs: [
+      {
+        name: 'deployFeeAmount',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
+      {
+        name: 'graduateFeeAmount',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
+      {
+        name: 'protocolFee',
+        type: 'uint24',
+        internalType: 'uint24',
+      },
+    ],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'foundationTreasury',
     inputs: [],
     outputs: [
       {
@@ -192,94 +232,12 @@ export const curveAbi = [
   },
   {
     type: 'function',
-    name: 'feeConfig',
-    inputs: [],
-    outputs: [
-      {
-        name: 'deployFeeAmount',
-        type: 'uint256',
-        internalType: 'uint256',
-      },
-      {
-        name: 'listingFeeAmount',
-        type: 'uint256',
-        internalType: 'uint256',
-      },
-      {
-        name: 'protocolFee',
-        type: 'uint24',
-        internalType: 'uint24',
-      },
-      {
-        name: 'dexFee',
-        type: 'uint24',
-        internalType: 'uint24',
-      },
-      {
-        name: 'treasuryFee',
-        type: 'uint24',
-        internalType: 'uint24',
-      },
-    ],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    name: 'initialize',
+    name: 'graduate',
     inputs: [
       {
-        name: 'config',
-        type: 'tuple',
-        internalType: 'struct IBondingCurve.Config',
-        components: [
-          {
-            name: 'virtualMonReserve',
-            type: 'uint256',
-            internalType: 'uint256',
-          },
-          {
-            name: 'virtualTokenReserve',
-            type: 'uint256',
-            internalType: 'uint256',
-          },
-          {
-            name: 'targetTokenAmount',
-            type: 'uint256',
-            internalType: 'uint256',
-          },
-        ],
-      },
-      {
-        name: 'feeConfig',
-        type: 'tuple',
-        internalType: 'struct IBondingCurve.FeeConfig',
-        components: [
-          {
-            name: 'deployFeeAmount',
-            type: 'uint256',
-            internalType: 'uint256',
-          },
-          {
-            name: 'listingFeeAmount',
-            type: 'uint256',
-            internalType: 'uint256',
-          },
-          {
-            name: 'protocolFee',
-            type: 'uint24',
-            internalType: 'uint24',
-          },
-          {
-            name: 'dexFee',
-            type: 'uint24',
-            internalType: 'uint24',
-          },
-          {
-            name: 'treasuryFee',
-            type: 'uint24',
-            internalType: 'uint24',
-          },
-        ],
+        name: 'token',
+        type: 'address',
+        internalType: 'address',
       },
     ],
     outputs: [],
@@ -287,7 +245,7 @@ export const curveAbi = [
   },
   {
     type: 'function',
-    name: 'isListed',
+    name: 'isGraduated',
     inputs: [
       {
         name: 'token',
@@ -325,32 +283,6 @@ export const curveAbi = [
   },
   {
     type: 'function',
-    name: 'listing',
-    inputs: [
-      {
-        name: 'token',
-        type: 'address',
-        internalType: 'address',
-      },
-    ],
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    name: 'lpManager',
-    inputs: [],
-    outputs: [
-      {
-        name: '',
-        type: 'address',
-        internalType: 'address',
-      },
-    ],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
     name: 'sell',
     inputs: [
       {
@@ -363,69 +295,96 @@ export const curveAbi = [
         type: 'address',
         internalType: 'address',
       },
+    ],
+    outputs: [
       {
         name: 'amountOut',
         type: 'uint256',
         internalType: 'uint256',
       },
     ],
-    outputs: [],
     stateMutability: 'nonpayable',
   },
   {
     type: 'function',
-    name: 'splitAmountAndFee',
+    name: 'setConfig',
     inputs: [
       {
-        name: '_amount',
-        type: 'uint256',
-        internalType: 'uint256',
-      },
-      {
-        name: 'isBuy',
-        type: 'bool',
-        internalType: 'bool',
+        name: 'params',
+        type: 'tuple',
+        internalType: 'struct IBondingCurve.SetConfigParams',
+        components: [
+          {
+            name: 'config',
+            type: 'tuple',
+            internalType: 'struct IBondingCurve.Config',
+            components: [
+              {
+                name: 'virtualMonReserve',
+                type: 'uint256',
+                internalType: 'uint256',
+              },
+              {
+                name: 'virtualTokenReserve',
+                type: 'uint256',
+                internalType: 'uint256',
+              },
+              {
+                name: 'targetTokenAmount',
+                type: 'uint256',
+                internalType: 'uint256',
+              },
+            ],
+          },
+          {
+            name: 'feeConfig',
+            type: 'tuple',
+            internalType: 'struct IBondingCurve.FeeConfig',
+            components: [
+              {
+                name: 'deployFeeAmount',
+                type: 'uint256',
+                internalType: 'uint256',
+              },
+              {
+                name: 'graduateFeeAmount',
+                type: 'uint256',
+                internalType: 'uint256',
+              },
+              {
+                name: 'protocolFee',
+                type: 'uint24',
+                internalType: 'uint24',
+              },
+            ],
+          },
+          {
+            name: 'antiSnipingConfig',
+            type: 'tuple',
+            internalType: 'struct IBondingCurve.AntiSnipingConfig',
+            components: [
+              {
+                name: 'maxPenaltyBlocks',
+                type: 'uint256',
+                internalType: 'uint256',
+              },
+              {
+                name: 'penaltyBlocks',
+                type: 'uint256[]',
+                internalType: 'uint256[]',
+              },
+              {
+                name: 'penaltyRates',
+                type: 'uint256[]',
+                internalType: 'uint256[]',
+              },
+            ],
+          },
+        ],
       },
     ],
-    outputs: [
-      {
-        name: 'amount',
-        type: 'uint256',
-        internalType: 'uint256',
-      },
-      {
-        name: 'fee',
-        type: 'uint256',
-        internalType: 'uint256',
-      },
-    ],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    name: 'treasury',
-    inputs: [],
-    outputs: [
-      {
-        name: '',
-        type: 'address',
-        internalType: 'address',
-      },
-    ],
-    stateMutability: 'view',
-  },
-  {
-    type: 'function',
-    name: 'vault',
-    inputs: [],
-    outputs: [
-      {
-        name: '',
-        type: 'address',
-        internalType: 'address',
-      },
-    ],
-    stateMutability: 'view',
+    outputs: [],
+    stateMutability: 'nonpayable',
   },
   {
     type: 'function',
@@ -547,6 +506,25 @@ export const curveAbi = [
   },
   {
     type: 'event',
+    name: 'CurveGraduate',
+    inputs: [
+      {
+        name: 'token',
+        type: 'address',
+        indexed: true,
+        internalType: 'address',
+      },
+      {
+        name: 'pool',
+        type: 'address',
+        indexed: true,
+        internalType: 'address',
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: 'event',
     name: 'CurveSell',
     inputs: [
       {
@@ -615,25 +593,6 @@ export const curveAbi = [
   },
   {
     type: 'event',
-    name: 'CurveTokenListed',
-    inputs: [
-      {
-        name: 'token',
-        type: 'address',
-        indexed: true,
-        internalType: 'address',
-      },
-      {
-        name: 'pool',
-        type: 'address',
-        indexed: true,
-        internalType: 'address',
-      },
-    ],
-    anonymous: false,
-  },
-  {
-    type: 'event',
     name: 'CurveTokenLocked',
     inputs: [
       {
@@ -646,8 +605,89 @@ export const curveAbi = [
     anonymous: false,
   },
   {
+    type: 'event',
+    name: 'SetConfig',
+    inputs: [
+      {
+        name: 'params',
+        type: 'tuple',
+        indexed: false,
+        internalType: 'struct IBondingCurve.SetConfigParams',
+        components: [
+          {
+            name: 'config',
+            type: 'tuple',
+            internalType: 'struct IBondingCurve.Config',
+            components: [
+              {
+                name: 'virtualMonReserve',
+                type: 'uint256',
+                internalType: 'uint256',
+              },
+              {
+                name: 'virtualTokenReserve',
+                type: 'uint256',
+                internalType: 'uint256',
+              },
+              {
+                name: 'targetTokenAmount',
+                type: 'uint256',
+                internalType: 'uint256',
+              },
+            ],
+          },
+          {
+            name: 'feeConfig',
+            type: 'tuple',
+            internalType: 'struct IBondingCurve.FeeConfig',
+            components: [
+              {
+                name: 'deployFeeAmount',
+                type: 'uint256',
+                internalType: 'uint256',
+              },
+              {
+                name: 'graduateFeeAmount',
+                type: 'uint256',
+                internalType: 'uint256',
+              },
+              {
+                name: 'protocolFee',
+                type: 'uint24',
+                internalType: 'uint24',
+              },
+            ],
+          },
+          {
+            name: 'antiSnipingConfig',
+            type: 'tuple',
+            internalType: 'struct IBondingCurve.AntiSnipingConfig',
+            components: [
+              {
+                name: 'maxPenaltyBlocks',
+                type: 'uint256',
+                internalType: 'uint256',
+              },
+              {
+                name: 'penaltyBlocks',
+                type: 'uint256[]',
+                internalType: 'uint256[]',
+              },
+              {
+                name: 'penaltyRates',
+                type: 'uint256[]',
+                internalType: 'uint256[]',
+              },
+            ],
+          },
+        ],
+      },
+    ],
+    anonymous: false,
+  },
+  {
     type: 'error',
-    name: 'AlreadyListing',
+    name: 'AlreadyGraduated',
     inputs: [],
   },
   {
@@ -677,12 +717,22 @@ export const curveAbi = [
   },
   {
     type: 'error',
-    name: 'InsufficientWmon',
+    name: 'InsufficientWMon',
     inputs: [],
   },
   {
     type: 'error',
     name: 'InvalidAmountIn',
+    inputs: [],
+  },
+  {
+    type: 'error',
+    name: 'InvalidAntiSnipingConfig',
+    inputs: [],
+  },
+  {
+    type: 'error',
+    name: 'InvalidFeeConfig',
     inputs: [],
   },
   {
@@ -693,6 +743,11 @@ export const curveAbi = [
   {
     type: 'error',
     name: 'InvalidName',
+    inputs: [],
+  },
+  {
+    type: 'error',
+    name: 'InvalidPenaltyRate',
     inputs: [],
   },
   {
@@ -725,4 +780,4 @@ export const curveAbi = [
     name: 'ZeroAddress',
     inputs: [],
   },
-]
+] as const
