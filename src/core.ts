@@ -35,7 +35,7 @@ export interface AvailableBuyTokens {
   requiredMonAmount: bigint
 }
 
-interface BaseTradeParams {
+export interface TradeParams {
   token: Address
   to: Address
   amountIn: bigint
@@ -46,46 +46,35 @@ interface BaseTradeParams {
   nonce?: number
 }
 
-export interface BuyParams extends BaseTradeParams {}
+export type BuyParams = TradeParams
+export type SellParams = TradeParams
 
-export interface SellParams extends BaseTradeParams {}
-
-export interface SellPermitParams extends BaseTradeParams {
+export interface SellPermitParams extends TradeParams {
   amountAllowance: bigint
   v: number
   r: `0x${string}`
   s: `0x${string}`
 }
 
+interface BaseGasParams {
+  token: Address
+  amountIn: bigint
+  amountOutMin: bigint
+  to: Address
+  deadline?: bigint
+}
+
 export type GasEstimationParams =
-  | {
-      type: 'buy'
-      token: Address
-      amountIn: bigint
-      amountOutMin: bigint
-      to: Address
-      deadline?: bigint
-    }
-  | {
-      type: 'sell'
-      token: Address
-      amountIn: bigint
-      amountOutMin: bigint
-      to: Address
-      deadline?: bigint
-    }
-  | {
+  | (BaseGasParams & { type: 'buy' })
+  | (BaseGasParams & { type: 'sell' })
+  | (BaseGasParams & {
       type: 'sellPermit'
-      token: Address
-      amountIn: bigint
-      amountOutMin: bigint
       amountAllowance: bigint
-      to: Address
       deadline: bigint
       v: number
       r: `0x${string}`
       s: `0x${string}`
-    }
+    })
 
 export interface Core {
   readonly publicClient: PublicClient
@@ -303,65 +292,74 @@ export function createCore(config: CoreConfig): Core {
     },
 
     async estimateGas(routerAddress, params) {
-      const { type, ...txParams } = params
-      let callData: `0x${string}`
-      let value = 0n
       const defaultDeadline = BigInt(Math.floor(Date.now() / 1000) + 3600)
 
-      if (type === 'buy') {
-        callData = encodeFunctionData({
+      if (params.type === 'buy') {
+        const callData = encodeFunctionData({
           abi: routerAbi,
           functionName: 'buy',
           args: [
             {
-              amountOutMin: txParams.amountOutMin,
-              token: txParams.token,
-              to: txParams.to,
-              deadline: txParams.deadline ?? defaultDeadline,
+              amountOutMin: params.amountOutMin,
+              token: params.token,
+              to: params.to,
+              deadline: params.deadline ?? defaultDeadline,
             },
           ],
         })
-        value = txParams.amountIn
-      } else if (type === 'sell') {
-        callData = encodeFunctionData({
+        return publicClient.estimateGas({
+          account: account.address,
+          to: routerAddress,
+          data: callData,
+          value: params.amountIn,
+        })
+      }
+
+      if (params.type === 'sell') {
+        const callData = encodeFunctionData({
           abi: routerAbi,
           functionName: 'sell',
           args: [
             {
-              amountIn: txParams.amountIn,
-              amountOutMin: txParams.amountOutMin,
-              token: txParams.token,
-              to: txParams.to,
-              deadline: txParams.deadline ?? defaultDeadline,
+              amountIn: params.amountIn,
+              amountOutMin: params.amountOutMin,
+              token: params.token,
+              to: params.to,
+              deadline: params.deadline ?? defaultDeadline,
             },
           ],
         })
-      } else {
-        const permitParams = params as GasEstimationParams & { type: 'sellPermit' }
-        callData = encodeFunctionData({
-          abi: routerAbi,
-          functionName: 'sellPermit',
-          args: [
-            {
-              amountIn: permitParams.amountIn,
-              amountOutMin: permitParams.amountOutMin,
-              amountAllowance: permitParams.amountAllowance,
-              token: permitParams.token,
-              to: permitParams.to,
-              deadline: permitParams.deadline,
-              v: permitParams.v,
-              r: permitParams.r,
-              s: permitParams.s,
-            },
-          ],
+        return publicClient.estimateGas({
+          account: account.address,
+          to: routerAddress,
+          data: callData,
+          value: 0n,
         })
       }
 
+      // sellPermit
+      const callData = encodeFunctionData({
+        abi: routerAbi,
+        functionName: 'sellPermit',
+        args: [
+          {
+            amountIn: params.amountIn,
+            amountOutMin: params.amountOutMin,
+            amountAllowance: params.amountAllowance,
+            token: params.token,
+            to: params.to,
+            deadline: params.deadline,
+            v: params.v,
+            r: params.r,
+            s: params.s,
+          },
+        ],
+      })
       return publicClient.estimateGas({
         account: account.address,
         to: routerAddress,
         data: callData,
-        value,
+        value: 0n,
       })
     },
   }

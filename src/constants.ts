@@ -26,7 +26,6 @@ export const CONTRACTS: Record<Network, NetworkContracts> = {
     V3_FACTORY: '0xd0a37cf728CE2902eB8d4F6f2afc76854048253b',
   },
   mainnet: {
-    // Mainnet addresses - to be updated when mainnet launches
     DEX_ROUTER: '0x0B79d71AE99528D1dB24A4148b5f4F865cc2b137',
     BONDING_CURVE_ROUTER: '0x6F6B8F1a20703309951a5127c45B49b1CD981A22',
     LENS: '0x7e78A8DE94f21804F7a17F4E8BF9EC2c872187ea',
@@ -38,9 +37,8 @@ export const CONTRACTS: Record<Network, NetworkContracts> = {
 
 // ==================== Chains ====================
 
-// Mainnet chain definition - to be updated when mainnet launches
 const monadMainnet: Chain = {
-  id: 143, // placeholder
+  id: 143,
   name: 'Monad Mainnet',
   nativeCurrency: {
     name: 'Monad',
@@ -72,7 +70,3 @@ export const DEFAULT_DEADLINE_SECONDS = 300
 
 // NADS standard fee tier for Uniswap V3 pools
 export const NADS_FEE_TIER = 10000 // 1%
-
-// Legacy exports for backward compatibility
-export const CURRENT_CHAIN = monadTestnet
-export const CHAIN_ID = CURRENT_CHAIN.id

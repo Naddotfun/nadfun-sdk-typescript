@@ -10,6 +10,7 @@ export type {
   QuoteResult,
   CurveState,
   AvailableBuyTokens,
+  TradeParams,
   BuyParams,
   SellParams,
   SellPermitParams,
@@ -73,9 +74,6 @@ export {
   DEFAULT_NETWORK,
   DEFAULT_DEADLINE_SECONDS,
   NADS_FEE_TIER,
-  // Legacy exports
-  CURRENT_CHAIN,
-  CHAIN_ID,
 } from './constants'
 export type { Network, NetworkContracts } from './constants'
 

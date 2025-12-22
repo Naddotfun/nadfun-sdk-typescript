@@ -1,603 +1,520 @@
 # Nad.fun TypeScript SDK
 
-A comprehensive TypeScript SDK for interacting with Nad.fun ecosystem contracts, including bonding curves, DEX trading, and real-time event monitoring.
+TypeScript SDK for Nad.fun - bonding curve trading, token operations, and real-time event streaming on Monad.
 
 ## Installation
 
 ```bash
 npm install @nadfun/sdk
-# or
-yarn add @nadfun/sdk
-# or
-bun add @nadfun/sdk
 ```
 
 ## Quick Start
 
 ```typescript
-import { Trade, Token, calculateMinAmountOut } from '@nadfun/sdk'
+import { initSDK, parseEther } from '@nadfun/sdk'
 
-// Trading with new gas estimation system
-const trade = new Trade(rpcUrl, privateKey)
-const token = '0x...' as `0x${string}`
-const { router, amount } = await trade.getAmountOut(token, parseEther('0.1'), true)
+const sdk = initSDK({
+  rpcUrl: process.env.RPC_URL!,
+  privateKey: process.env.PRIVATE_KEY! as `0x${string}`,
+  network: 'testnet', // or 'mainnet'
+})
 
-// unified gas estimation (v0.2.2)
-const gasParams = {
-  type: 'buy' as const,
-  token,
+// Buy tokens
+await sdk.simpleBuy({
+  token: '0x...',
   amountIn: parseEther('0.1'),
-  amountOutMin: amount,
-  to: trade.account.address,
-  deadline: 9999999999999999n,
-}
-const estimatedGas = await trade.estimateGas(router, gasParams)
+  slippagePercent: 1,
+})
 
-// Token operations
-const tokenHelper = new Token(rpcUrl, privateKey)
-const balance = await tokenHelper.getBalance(token)
+// Sell tokens (automatic approve)
+await sdk.simpleSell({
+  token: '0x...',
+  amountIn: parseEther('1000'),
+  slippagePercent: 1,
+})
+```
+
+## Project Structure
+
+```
+src/
+├── index.ts          # Main exports
+├── sdk.ts            # SDK factory (initSDK)
+├── core.ts           # Core trading & curve operations
+├── tokenHelper.ts    # ERC20 token operations
+├── curveStream.ts    # Real-time curve event streaming
+├── curveIndexer.ts   # Historical curve event indexing
+├── dexStream.ts      # Real-time DEX swap streaming
+├── dexIndexer.ts     # Historical DEX swap indexing
+├── constants.ts      # Network contracts & chain configs
+└── abis/             # Contract ABIs
+    ├── curve.ts
+    ├── router.ts
+    ├── lens.ts
+    ├── token.ts
+    ├── v3factory.ts
+    └── v3pool.ts
 ```
 
 ## Features
 
-### 🚀 Trading
-
-Execute buy/sell operations on bonding curves with slippage protection:
+### Trading
 
 ```typescript
-import { Trade, calculateMinAmountOut, type GasEstimationParams } from '@nadfun/sdk'
+// Simple buy
+await sdk.simpleBuy({
+  token: '0x...',
+  amountIn: parseEther('0.1'),
+  slippagePercent: 1,
+})
 
-// Get quote and execute buy
-const { router, amount: expectedTokens } = await trade.getAmountOut(token, monAmount, true)
-const minTokens = calculateMinAmountOut(expectedTokens, 5.0)
+// Simple sell (automatic approve)
+await sdk.simpleSell({
+  token: '0x...',
+  amountIn: parseEther('1000'),
+  slippagePercent: 1,
+})
 
-// Use new unified gas estimation system
-const gasParams: GasEstimationParams = {
-  type: 'buy',
+// Get quote
+const quote = await sdk.getAmountOut(token, amountIn, true) // true = buy
+console.log('Router:', quote.router)
+console.log('Expected amount:', quote.amount)
+
+// Low-level buy (manual control)
+await sdk.buy({
   token,
-  amountIn: monAmount,
-  amountOutMin: minTokens,
-  to: walletAddress,
-  deadline,
-}
+  amountIn,
+  amountOutMin,
+  to: sdk.account.address,
+  deadline: BigInt(Math.floor(Date.now() / 1000) + 300),
+}, router)
 
-// Get accurate gas estimation from network
-const estimatedGas = await trade.estimateGas(router, gasParams)
-const gasWithBuffer = (estimatedGas * 120n) / 100n // Add 20% buffer
-
-const result = await trade.buy(
-  {
-    token,
-    amountIn: monAmount,
-    amountOutMin: minTokens,
-    to: walletAddress,
-    deadline,
-    gasLimit: gasWithBuffer, // Use network-based estimation
-  },
-  router
-)
-```
-
-### ⛽ Gas Management
-
-v0.2.2 introduces a unified gas estimation system that replaces static constants with real-time network estimation:
-
-#### Unified Gas Estimation (New in v0.2.2)
-
-```typescript
-import { Trade, type GasEstimationParams } from '@nadfun/sdk'
-
-// Create gas estimation parameters for any operation
-const gasParams: GasEstimationParams = {
-  type: 'buy', // or 'sell', 'sellPermit'
+// Sell with permit (gasless approve)
+const permit = await sdk.generatePermitSignature(token, router, amountIn, deadline)
+await sdk.sellPermit({
   token,
-  amountIn: monAmount,
-  amountOutMin: minTokens,
-  to: walletAddress,
+  amountIn,
+  amountOutMin,
+  to: sdk.account.address,
   deadline,
-}
+  amountAllowance: amountIn,
+  ...permit,
+}, router)
 
-// Get real-time gas estimation from network
-const estimatedGas = await trade.estimateGas(router, gasParams)
-
-// Apply buffer strategy
-const gasWithBuffer = (estimatedGas * 120n) / 100n // 20% buffer
-```
-
-#### Gas Estimation Parameters
-
-```typescript
-type GasEstimationParams = {
-  type: 'buy' | 'sell' | 'sellPermit'
-  token: `0x${string}`
-  amountIn: bigint
-  amountOutMin: bigint
-  to: `0x${string}`
-  deadline: bigint
-  // For sellPermit only
-  v?: number
-  r?: `0x${string}`
-  s?: `0x${string}`
-}
-```
-
-#### Automatic Problem Solving
-
-The new system automatically handles common issues:
-
-- **Token Approval**: SELL operations automatically check and approve tokens
-- **Permit Signatures**: SELL PERMIT operations generate real EIP-2612 signatures
-- **Network Conditions**: Uses actual network state instead of static estimates
-- **Error Recovery**: Graceful fallback when estimation fails
-
-#### Buffer Strategies
-
-```typescript
-// Fixed buffer amounts
-const gasFixedBuffer = estimatedGas + 50_000n // +50k gas
-
-// Percentage-based buffers
-const gas20Percent = (estimatedGas * 120n) / 100n // 20% buffer
-const gas25Percent = (estimatedGas * 125n) / 100n // 25% buffer (for complex operations)
-
-// Choose based on operation complexity
-const finalGas = (() => {
-  switch (operationType) {
-    case 'buy':
-      return (estimatedGas * 120n) / 100n // 20% buffer
-    case 'sell':
-      return (estimatedGas * 115n) / 100n // 15% buffer
-    case 'sellPermit':
-      return (estimatedGas * 125n) / 100n // 25% buffer
-    default:
-      return estimatedGas + 50_000n // Fixed buffer
-  }
-})()
-```
-
-#### Migration from Earlier Versions
-
-```typescript
-// OLD - Static constants
-import { getDefaultGasLimit } from '@nadfun/sdk'
-const gasLimit = getDefaultGasLimit(router, 'buy')
-
-// NEW (v0.2.2) - Network-based estimation
-const params: GasEstimationParams = {
+// Gas estimation
+const gas = await sdk.estimateGas(router, {
   type: 'buy',
   token,
   amountIn,
   amountOutMin,
-  to,
-  deadline,
-}
-const estimatedGas = await trade.estimateGas(router, params)
-const gasLimit = (estimatedGas * 120n) / 100n // Apply buffer
+  to: sdk.account.address,
+})
 ```
 
-⚠️ **Important Notes:**
-
-- **SELL Operations**: Require token approval for router (automatically handled in examples)
-- **SELL PERMIT Operations**: Need valid EIP-2612 permit signatures (automatically generated)
-- **Network Connection**: Live RPC required for accurate estimation
-
-### 📊 Token Operations
-
-Interact with ERC-20 tokens and get metadata:
+### Token Operations
 
 ```typescript
-import { Token } from '@nadfun/sdk'
+// Balance
+const balance = await sdk.getBalance(token)
+const [raw, formatted] = await sdk.getBalanceFormatted(token)
 
-const tokenHelper = new Token(rpcUrl, privateKey)
+// Batch balances
+const balances = await sdk.batchGetBalances([token1, token2, token3])
 
-// Get token metadata
-const metadata = await tokenHelper.getMetadata(token)
-console.log(`Token: ${metadata.name} (${metadata.symbol})`)
+// Metadata
+const metadata = await sdk.getMetadata(token)
+console.log(`${metadata.name} (${metadata.symbol})`)
 
-// Check balances and allowances
-const balance = await tokenHelper.getBalance(token)
-const allowance = await tokenHelper.getAllowance(token, spender)
+// Batch metadata
+const allMetadata = await sdk.batchGetMetadata([token1, token2])
 
-// Approve tokens
-const tx = await tokenHelper.approve(token, spender, amount)
+// Individual metadata methods
+const decimals = await sdk.getDecimals(token)
+const name = await sdk.getName(token)
+const symbol = await sdk.getSymbol(token)
+const totalSupply = await sdk.getTotalSupply(token)
+const nonce = await sdk.getNonce(token)
 
-// Generate permit signatures (EIP-2612)
-const signature = await tokenHelper.generatePermitSignature(token, spender, amount, deadline)
+// Approve
+await sdk.approve(token, spender, amount)
+
+// Transfer
+await sdk.transfer(token, to, amount)
+
+// Allowance
+const allowance = await sdk.getAllowance(token, spender)
+
+// Check if address is contract
+const isContract = await sdk.isContract(address)
+
+// Permit signature (EIP-2612)
+const permit = await sdk.generatePermitSignature(token, spender, amount, deadline)
 ```
 
-### 🔄 Real-time Event Streaming
-
-Monitor bonding curve and DEX events in real-time:
-
-#### Bonding Curve Streaming
+### Curve State
 
 ```typescript
-import { CurveStream } from '@nadfun/sdk/stream'
-import { CurveEventType } from '@nadfun/sdk/types'
+// Bonding curve state
+const state = await sdk.getCurveState(token)
+console.log('Real MON Reserve:', state.realMonReserve)
+console.log('Real Token Reserve:', state.realTokenReserve)
+console.log('Virtual MON Reserve:', state.virtualMonReserve)
+console.log('Virtual Token Reserve:', state.virtualTokenReserve)
+console.log('K:', state.k)
+console.log('Target Token Amount:', state.targetTokenAmount)
 
-// Create WebSocket stream
-const curveStream = new CurveStream('wss://your-ws-endpoint')
+// Available tokens to buy before graduation
+const available = await sdk.getAvailableBuyTokens(token)
+console.log('Available:', available.availableBuyToken)
+console.log('Required MON:', available.requiredMonAmount)
 
-// Configure filters (optional)
-curveStream.subscribeEvents([CurveEventType.Buy, CurveEventType.Sell])
-curveStream.filterTokens([tokenAddress])
+// Progress (0-10000 = 0-100%)
+const progress = await sdk.getProgress(token)
+console.log(`Progress: ${Number(progress) / 100}%`)
 
-// Subscribe and process events
-const onEvent = curveStream.onEvent(event => {
-  console.log(`Event: ${event.type} for token ${event.token}`)
+// Graduation status
+const isGraduated = await sdk.isGraduated(token)
+const isLocked = await sdk.isLocked(token)
+
+// Calculate initial buy amount
+const amountOut = await sdk.getInitialBuyAmountOut(parseEther('1'))
+```
+
+### Real-time Streaming
+
+```typescript
+// Curve events
+const stream = sdk.createCurveStream(process.env.WS_URL!)
+
+stream.onEvent((event) => {
+  console.log(`[${event.type}]`, event)
 })
 
-await curveStream.start()
-```
-
-#### DEX Swap Streaming
-
-```typescript
-import { DexStream } from '@nadfun/sdk/stream'
-
-// Auto-discover pools for tokens
-const swapStream = await DexStream.discoverPoolsForTokens('wss://your-ws-endpoint', [tokenAddress])
-
-// Subscribe and process events
-swapStream.onSwap(event => {
-  console.log(`Swap in pool ${event.pool}: ${event.amount0} -> ${event.amount1}`)
+stream.onError((error) => {
+  console.error('Stream error:', error)
 })
 
-await swapStream.start()
+stream.filterEventTypes(['Create', 'Buy', 'Sell'])
+stream.filterTokens([tokenAddress])
+stream.start()
+
+// Stop streaming
+stream.stop()
+
+// DEX swaps
+const dexStream = sdk.createDexStream(process.env.WS_URL!, [poolAddress])
+dexStream.onSwap((event) => {
+  console.log('Swap:', event)
+})
+dexStream.start()
 ```
 
-### 📈 Historical Data Analysis
-
-Fetch and analyze historical events:
+### Pool Discovery
 
 ```typescript
-import { CurveIndexer, CurveEventType } from '@nadfun/sdk/stream'
+import { discoverPoolForToken, discoverPoolsForTokens, createDexStreamWithTokens } from '@nadfun/sdk'
 
-const indexer = new CurveIndexer('https://your-rpc-endpoint')
+// Find pool for a single token
+const pool = await discoverPoolForToken(rpcUrl, tokenAddress, 'testnet')
 
-// Fetch events from block range
-const events = await indexer.fetchEvents(
-  18_000_000,
-  18_010_000,
-  [CurveEventType.Create, CurveEventType.Buy],
-  undefined // all tokens
-)
+// Find pools for multiple tokens
+const pools = await discoverPoolsForTokens(rpcUrl, [token1, token2], 'testnet')
 
-console.log(`Found ${events.length} events`)
+// Create DEX stream with automatic pool discovery
+const stream = await createDexStreamWithTokens(wsUrl, rpcUrl, [token1, token2], 'testnet')
+stream.onSwap((event) => console.log(event))
+stream.start()
 ```
 
-### 🔍 Pool Discovery
-
-Find Uniswap V3 pool addresses for tokens:
+### Historical Indexing
 
 ```typescript
-import { DexIndexer } from '@nadfun/sdk/stream'
+// Curve indexer
+const indexer = sdk.createCurveIndexer()
 
-// Auto-discover pools for multiple tokens
-const indexer = await DexIndexer.discoverPoolsForTokens('https://your-rpc-endpoint', tokens)
-const pools = indexer.getPoolAddresses()
+// Get all events with filters
+const events = await indexer.getEvents({
+  fromBlock: 1000000n,
+  toBlock: 1001000n,
+  eventTypes: ['Buy', 'Sell'],
+  tokens: [tokenAddress],
+})
 
-// Fetch swap events
-const swaps = await indexer.fetchEvents(fromBlock, toBlock)
+// Specific event types
+const creates = await indexer.getCreateEvents(fromBlock, toBlock)
+const buys = await indexer.getBuyEvents(fromBlock, toBlock, tokenAddress)
+const sells = await indexer.getSellEvents(fromBlock, toBlock, tokenAddress)
+const syncs = await indexer.getSyncEvents(fromBlock, toBlock, tokenAddress)
+const locks = await indexer.getTokenLockedEvents(fromBlock, toBlock)
+const graduates = await indexer.getGraduateEvents(fromBlock, toBlock)
+
+// Get latest block
+const latestBlock = await indexer.getLatestBlock()
+
+// DEX indexer
+const dexIndexer = sdk.createDexIndexer([poolAddress])
+
+const swaps = await dexIndexer.getSwapEvents({
+  fromBlock: 1000000n,
+  toBlock: 1001000n,
+  sender: senderAddress,     // optional
+  recipient: recipientAddress, // optional
+})
+
+// Pool info
+const poolInfo = await dexIndexer.getPoolInfo(poolAddress)
+const allPoolsInfo = await dexIndexer.getPoolsInfo()
+```
+
+## Network Configuration
+
+```typescript
+const sdk = initSDK({
+  rpcUrl: process.env.RPC_URL!,
+  privateKey: process.env.PRIVATE_KEY! as `0x${string}`,
+  network: 'testnet', // 'testnet' | 'mainnet'
+})
+
+// Access network constants
+import { CONTRACTS, CHAINS, DEFAULT_NETWORK, NADS_FEE_TIER } from '@nadfun/sdk'
+
+console.log(CONTRACTS.testnet.CURVE)
+console.log(CHAINS.mainnet.id) // 143
+```
+
+## Utility Functions
+
+```typescript
+import {
+  calculateMinAmountOut,
+  calculateMaxAmountIn,
+  parseEther,
+  formatEther,
+  parseUnits,
+  formatUnits,
+} from '@nadfun/sdk'
+
+// Slippage calculation
+const minOut = calculateMinAmountOut(expectedAmount, 0.5) // 0.5% slippage
+const maxIn = calculateMaxAmountIn(expectedAmount, 1) // 1% slippage
 ```
 
 ## Examples
 
-The SDK includes comprehensive examples in the `examples/` directory:
-
-### Trading Examples
-
 ```bash
-# Using environment variables
-export PRIVATE_KEY="your_private_key_here"
-export RPC_URL="https://your-rpc-endpoint"
-export TOKEN="0xTokenAddress"
-export RECIPIENT="0xRecipientAddress"  # For token operations
+# Copy .env.example to .env and configure
+cp .env.example .env
 
-bun run example:buy              # Buy tokens with network-based gas estimation
-bun run example:sell             # Sell tokens with automatic approval handling
-bun run example:sell-permit      # Gasless sell with real permit signatures
-bun run example:gas-estimation   # Comprehensive gas estimation example (NEW)
-
-# Using command line arguments
-bun run example:buy -- --private-key your_private_key_here --rpc-url https://your-rpc-endpoint --token 0xTokenAddress
-bun run example:sell -- --private-key your_private_key_here --rpc-url https://your-rpc-endpoint --token 0xTokenAddress
-bun run example:sell-permit -- --private-key your_private_key_here --rpc-url https://your-rpc-endpoint --token 0xTokenAddress
-bun run example:gas-estimation -- --private-key your_private_key_here --rpc-url https://your-rpc-endpoint --token 0xTokenAddress
+# Run examples
+npx tsx -r dotenv/config examples/simple-buy.ts
+npx tsx -r dotenv/config examples/simple-sell.ts
+npx tsx -r dotenv/config examples/buy.ts
+npx tsx -r dotenv/config examples/sell.ts
+npx tsx -r dotenv/config examples/sell-permit.ts
+npx tsx -r dotenv/config examples/token.ts
+npx tsx -r dotenv/config examples/curve-stream.ts
+npx tsx -r dotenv/config examples/curve-indexer.ts
+npx tsx -r dotenv/config examples/dex-stream.ts
+npx tsx -r dotenv/config examples/dex-indexer.ts
 ```
 
-### Gas Estimation Example (New in v0.2.2)
+## API Reference
 
-```bash
-# Comprehensive gas estimation with automatic problem solving
-bun run example:gas-estimation -- --private-key your_private_key_here --rpc-url https://your-rpc-endpoint --token 0xTokenAddress
+### initSDK(config)
+
+Creates SDK instance with all methods.
+
+```typescript
+interface SDKConfig {
+  rpcUrl: string
+  privateKey: `0x${string}`
+  network?: 'testnet' | 'mainnet' // default: 'testnet'
+}
 ```
 
-**Features:**
+### Trading Methods
 
-- **Unified Gas Estimation**: Demonstrates `trade.estimateGas()` for all operation types
-- **Automatic Approval**: Handles token approval for SELL operations automatically
-- **Real Permit Signatures**: Generates valid EIP-2612 signatures for SELL PERMIT operations
-- **Buffer Strategies**: Shows different buffer calculation methods (fixed +50k, percentage 20%-25%)
-- **Cost Analysis**: Real-time transaction cost estimates at different gas prices
-- **Error Handling**: Graceful fallback when estimation fails
+| Method | Description |
+|--------|-------------|
+| `simpleBuy(params)` | Buy with auto slippage |
+| `simpleSell(params)` | Sell with auto approve + slippage |
+| `buy(params, router)` | Low-level buy |
+| `sell(params, router)` | Low-level sell |
+| `sellPermit(params, router)` | Sell with permit (gasless approve) |
+| `getAmountOut(token, amountIn, isBuy)` | Get quote |
+| `getAmountIn(token, amountOut, isBuy)` | Get required input |
+| `estimateGas(router, params)` | Estimate gas for trade |
 
-### Token Examples
+### Token Methods
 
-```bash
-bun run example:basic-operation  # Basic ERC-20 operations
-bun run example:permit-signature  # EIP-2612 permit signatures
-```
+| Method | Description |
+|--------|-------------|
+| `getBalance(token, address?)` | Get token balance |
+| `getBalanceFormatted(token, address?)` | Get balance with formatted string |
+| `approve(token, spender, amount)` | Approve spender |
+| `transfer(token, to, amount)` | Transfer tokens |
+| `getMetadata(token)` | Get token metadata |
+| `getDecimals(token)` | Get token decimals |
+| `getName(token)` | Get token name |
+| `getSymbol(token)` | Get token symbol |
+| `getTotalSupply(token)` | Get total supply |
+| `getNonce(token, owner?)` | Get permit nonce |
+| `getAllowance(token, spender, owner?)` | Get allowance |
+| `isContract(address)` | Check if address is contract |
+| `generatePermitSignature(...)` | Generate EIP-2612 permit |
+| `batchGetBalances(tokens, address?)` | Get multiple balances |
+| `batchGetMetadata(tokens)` | Get multiple token metadata |
 
-### Stream Examples
+### Curve Methods
 
-The SDK provides comprehensive streaming examples organized by category:
+| Method | Description |
+|--------|-------------|
+| `getCurveState(token)` | Get bonding curve state |
+| `getAvailableBuyTokens(token)` | Get available tokens to buy |
+| `getProgress(token)` | Get graduation progress (0-10000) |
+| `isGraduated(token)` | Check if graduated |
+| `isLocked(token)` | Check if locked |
+| `getInitialBuyAmountOut(amountIn)` | Calculate initial buy amount |
 
-#### 🔄 Bonding Curve Examples
+### Stream Factories
 
-**1. curve_indexer** - Historical bonding curve event analysis
+| Method | Description |
+|--------|-------------|
+| `createCurveStream(wsUrl)` | Create curve event stream |
+| `createCurveIndexer()` | Create curve indexer |
+| `createDexStream(wsUrl, pools)` | Create DEX stream |
+| `createDexIndexer(pools)` | Create DEX indexer |
 
-```bash
-# Fetch historical CurveCreate, CurveBuy, CurveSell events
-bun run example:curve-indexer -- --rpc-url https://your-rpc-endpoint
+### Standalone Functions
 
-# With specific tokens
-bun run example:curve-indexer -- --rpc-url https://your-rpc-endpoint --tokens 0xToken1,0xToken2
-```
+| Function | Description |
+|----------|-------------|
+| `discoverPoolForToken(rpcUrl, token, network?)` | Find V3 pool for token |
+| `discoverPoolsForTokens(rpcUrl, tokens, network?)` | Find V3 pools for tokens |
+| `createDexStreamWithTokens(wsUrl, rpcUrl, tokens, network?)` | Create DEX stream with auto pool discovery |
+| `createDexIndexerWithTokens(rpcUrl, tokens, network?)` | Create DEX indexer with auto pool discovery |
+| `calculateMinAmountOut(amount, slippagePercent)` | Calculate min output with slippage |
+| `calculateMaxAmountIn(amount, slippagePercent)` | Calculate max input with slippage |
 
-**2. curve_stream** - Real-time bonding curve monitoring
+### Types
 
-```bash
-# Scenario 1: Monitor all bonding curve events
-bun run example:curve-stream -- --ws-url wss://your-ws-endpoint
+```typescript
+// Network
+type Network = 'testnet' | 'mainnet'
 
-# Scenario 2: Filter specific event types (CurveBuy/CurveSell only)
-bun run example:curve-stream -- --ws-url wss://your-ws-endpoint --events CurveBuy, CurveSell
+// Trading
+interface SimpleBuyParams {
+  token: Address
+  amountIn: bigint
+  slippagePercent?: number
+  to?: Address
+  deadline?: bigint
+  gasLimit?: bigint
+  gasPrice?: bigint
+  nonce?: number
+}
 
-# Scenario 3: Filter specific tokens only
-bun run example:curve-stream -- --ws-url wss://your-ws-endpoint --tokens 0xToken1,0xToken2
+interface SimpleSellParams {
+  token: Address
+  amountIn: bigint
+  slippagePercent?: number
+  to?: Address
+  deadline?: bigint
+  gasLimit?: bigint
+  gasPrice?: bigint
+  nonce?: number
+}
 
-# Scenario 4: Combined filtering (events AND tokens)
-bun run example:curve-stream -- --ws-url wss://your-ws-endpoint --events CurveBuy,CurveSell --tokens 0xToken1
-```
+interface QuoteResult {
+  router: Address
+  amount: bigint
+}
 
-**Features:**
+// Curve
+interface CurveState {
+  realMonReserve: bigint
+  realTokenReserve: bigint
+  virtualMonReserve: bigint
+  virtualTokenReserve: bigint
+  k: bigint
+  targetTokenAmount: bigint
+  initVirtualMonReserve: bigint
+  initVirtualTokenReserve: bigint
+}
 
-- ✅ All event types: CurveCreate,CurveBuy,CurveSell,CurveSync,CurveTokenLocked,CurveTokenListed
-- ✅ Event type filtering via `--events` argument
-- ✅ Token filtering via `--tokens` argument
-- ✅ Combined filtering (events + tokens)
-- ✅ Real-time WebSocket streaming
-- ✅ Automatic event decoding
+interface AvailableBuyTokens {
+  availableBuyToken: bigint
+  requiredMonAmount: bigint
+}
 
-#### 💱 DEX Examples
+// Token
+interface TokenMetadata {
+  name: string
+  symbol: string
+  decimals: number
+  totalSupply: bigint
+  address: Address
+}
 
-**3. dex_indexer** - Historical DEX swap data analysis
+interface PermitSignature {
+  v: number
+  r: Hex
+  s: Hex
+  nonce: bigint
+}
 
-```bash
-# Discover pools and fetch historical swap events
-bun run example:dex-indexer -- --rpc-url https://your-rpc-endpoint --tokens 0xToken1,0xToken2
+// Events
+type CurveEventType = 'Create' | 'Buy' | 'Sell' | 'Sync' | 'TokenLocked' | 'Graduate'
 
-# Use specific pool addresses
-bun run example:dex-indexer -- --rpc-url https://your-rpc-endpoint --pools 0xPool1,0xPool2
-```
+interface SwapEvent {
+  pool: Address
+  sender: Address
+  recipient: Address
+  amount0: bigint
+  amount1: bigint
+  sqrtPriceX96: bigint
+  liquidity: bigint
+  tick: number
+  blockNumber: bigint
+  transactionHash: `0x${string}`
+  logIndex: number
+}
 
-**4. dex_stream** - Real-time DEX swap monitoring
-
-```bash
-# Scenario 1: Monitor specific pool addresses directly
-bun run example:dex-stream -- --ws-url wss://your-ws-endpoint --pools 0xPool1,0xPool2
-
-# Scenario 2: Auto-discover pools for multiple tokens
-bun run example:dex-stream -- --ws-url wss://your-ws-endpoint --tokens 0xToken1,0xToken2
-
-# Scenario 3: Single token pool discovery
-bun run example:dex-stream -- --ws-url wss://your-ws-endpoint --token 0xTokenAddress
-```
-
-**Features:**
-
-- ✅ Automatic pool discovery for tokens
-- ✅ Direct pool address monitoring
-- ✅ Single token pool discovery
-- ✅ Real-time Uniswap V3 swap events
-- ✅ Pool metadata included
-- ✅ WebSocket streaming
-
-#### 🔍 Pool Discovery
-
-**5. pool_discovery** - Automated pool address discovery
-
-```bash
-# Find Uniswap V3 pools for multiple tokens
-bun run example:pool-discovery -- --rpc-url https://your-rpc-endpoint --tokens 0xToken1,0xToken2
-
-# Discover pools for single token
-bun run example:pool-discovery -- --rpc-url https://your-rpc-endpoint --token 0xTokenAddress
-```
-
-## Core Types
-
-### Event Types
-
-- **BondingCurveEvent**: Unified type for all bonding curve events
-  - CurveCreate, CurveBuy, CurveSell, CurveSync, CurveTokenLocked, CurveTokenListed variants
-  - Properties: `token`, `type`, `blockNumber`, `transactionHash`
-- **SwapEvent**: Uniswap V3 swap events with complete metadata
-  - Fields: `pool`, `amount0`, `amount1`, `sender`, `recipient`, `liquidity`, `tick`, `sqrtPriceX96`
-- **CurveEventType**: Enum for filtering bonding curve events
-  - Variants: CurveCreate, CurveBuy, CurveSell, CurveSync, CurveTokenLocked, CurveTokenListed
-
-### Stream Types
-
-- **CurveStream**: Bonding curve event streaming
-  - Methods: `subscribeEvents()`, `filterTokens()`, `onEvent()`, `start()`, `stop()`
-- **DexStream**: DEX swap event streaming
-  - Methods: `discoverPoolsForTokens()`, `onSwap()`, `start()`, `stop()`
-
-### Trading Types
-
-- **BuyParams / SellParams**: Parameters for buy/sell operations
-- **TradeResult**: Transaction result with status and metadata
-- **GasEstimationParams**: Parameters for gas estimation
-
-### Token Types
-
-- **TokenMetadata**: Name, symbol, decimals, total supply
-- **PermitSignature**: EIP-2612 permit signature data (v, r, s)
-
-## Configuration
-
-### Environment Variables
-
-```bash
-export RPC_URL="https://your-rpc-endpoint"
-export WS_RPC_URL="wss://your-ws-endpoint"
-export PRIVATE_KEY="your_private_key_here"
-export TOKEN="0xTokenAddress"
-export TOKENS="0xToken1,0xToken2"  # Multiple tokens for monitoring
-export POOLS="0xPool1,0xPool2"     # Pool addresses for DEX monitoring
-export RECIPIENT="0xRecipientAddress"
-export EVENTS="CurveCreate,CurveBuy,CurveSell,CurveSync,CurveTokenLocked,CurveTokenListed"    # Event types to monitor
-```
-
-### CLI Arguments
-
-All examples support command line arguments for configuration:
-
-```bash
-# Available options
---rpc-url <URL>      # RPC URL for HTTP operations
---ws-url <URL>       # WebSocket URL for streaming
---private-key <KEY>  # Private key for transactions
---token <ADDRESS>    # Token address for operations
---tokens <ADDRS>     # Token addresses: 'addr1,addr2'
---pools <ADDRS>      # Pool addresses: 'pool1,pool2'
---recipient <ADDR>   # Recipient address for transfers/allowances
---events <TYPES>     # Event types: 'CurveBuy,CurveSell,CurveCreate'
-
-# Example usage
-bun run example:sell-permit -- \
-  --rpc-url https://your-rpc-endpoint \
-  --private-key your_private_key_here \
-  --token 0xYourTokenAddress
-
-# Example with recipient (for token operations)
-bun run example:basic-operation -- \
-  --private-key your_private_key_here \
-  --rpc-url https://your-rpc-endpoint \
-  --token 0xYourTokenAddress \
-  --recipient 0xRecipientAddress
-
-# Example with multiple tokens for monitoring
-bun run example:dex-indexer -- \
-  --rpc-url https://your-rpc-endpoint \
-  --tokens 0xToken1,0xToken2,0xToken3
+interface PoolInfo {
+  address: Address
+  token0: Address
+  token1: Address
+  fee: number
+  liquidity: bigint
+  sqrtPriceX96: bigint
+  tick: number
+}
 ```
 
 ## Contract Addresses
 
-All contract addresses are defined in `constants.ts`:
+### Testnet (Monad Testnet)
 
-- **Bonding Curve**: `0x52D34d8536350Cd997bCBD0b9E9d722452f341F5`
-- **Bonding Curve Router**: `0x4F5A3518F082275edf59026f72B66AC2838c0414`
-- **DEX Router**: `0x4FBDC27FAE5f99E7B09590bEc8Bf20481FCf9551`
-- **WMON Token**: `0x760AfE86e5de5fa0Ee542fc7B7B713e1c5425701`
+| Contract | Address |
+|----------|---------|
+| DEX Router | `0x5D4a4f430cA3B1b2dB86B9cFE48a5316800F5fb2` |
+| Bonding Curve Router | `0x865054F0F6A288adaAc30261731361EA7E908003` |
+| Lens | `0xB056d79CA5257589692699a46623F901a3BB76f1` |
+| Curve | `0x1228b0dc9481C11D3071E7A924B794CfB038994e` |
+| WMON | `0x5a4E0bFDeF88C9032CB4d24338C5EB3d3870BfDd` |
+| V3 Factory | `0xd0a37cf728CE2902eB8d4F6f2afc76854048253b` |
 
-## Error Handling
+### Mainnet (Monad Mainnet, Chain ID: 143)
 
-The SDK uses standard TypeScript error handling:
-
-```typescript
-try {
-  const trade = new Trade(rpcUrl, privateKey)
-  const result = await trade.getAmountOut(token, amount, true)
-} catch (error) {
-  console.error('Error:', error)
-}
-```
-
-## Testing & Verification
-
-All examples have been tested and verified working. Here are ready-to-run test commands:
-
-### 🔄 Real-time Streaming Tests
-
-```bash
-# Test bonding curve streaming (all events)
-bun run example:curve-stream -- --ws-url wss://your-ws-endpoint
-
-# Test DEX swap streaming (auto-discover pools)
-bun run example:dex-stream -- --ws-url wss://your-ws-endpoint --tokens 0xYourTokenAddress
-
-# Test with event filtering
-bun run example:curve-stream -- --ws-url wss://your-ws-endpoint --events CurveCreate,CurveBuy
-
-# Test with specific pool monitoring
-bun run example:dex-stream -- --ws-url wss://your-ws-endpoint --pools 0xPool1,0xPool2
-```
-
-### 📊 Historical Data Tests
-
-```bash
-# Test bonding curve historical analysis
-bun run example:curve-indexer -- --rpc-url https://your-rpc-endpoint --tokens 0xYourTokenAddress
-
-# Test pool discovery
-bun run example:pool-discovery -- --rpc-url https://your-rpc-endpoint --tokens 0xToken1,0xToken2
-
-# Test DEX historical analysis
-bun run example:dex-indexer -- --rpc-url https://your-rpc-endpoint --tokens 0xYourTokenAddress
-```
-
-### ⚡ Quick Validation
-
-```bash
-# Minimal test - just connect and verify
-bun run example:curve-stream -- --ws-url wss://your-ws-endpoint
-# Should output: "🔴 Listening for ALL bonding curve events..."
-
-bun run example:dex-stream -- --token 0xTokenAddress --ws-url wss://your-ws-endpoint
-# Should output: "✅ Discovered X pools"
-```
-
-## Performance & Reliability
-
-### ✅ Verified Features
-
-- **Real-time Streaming**: WebSocket-based event delivery tested and working
-- **Event Decoding**: Automatic parsing of bonding curve and swap events
-- **Connection Stability**: Auto-reconnection with exponential backoff
-- **Error Handling**: Comprehensive error handling with proper types
-- **Multiple Scenarios**: All streaming scenarios tested and verified
-
-### 📊 Tested Scenarios
-
-- **Bonding Curve**: 4 scenarios (all events, filtered events, filtered tokens, combined)
-- **DEX Streaming**: 3 scenarios (specific pools, token discovery, single token)
-- **Historical Data**: Block range processing with automatic batching
-- **Pool Discovery**: Automatic Uniswap V3 pool detection for tokens
-
-### ⚡ Performance Features
-
-- **Efficient Filtering**: Network-level filtering for event types
-- **Client-side Filtering**: Token-based filtering for precise control
-- **Concurrent Processing**: Parallel block processing for historical data
-- **Memory Efficient**: Stream-based processing without buffering
-- **TypeScript Native**: Full type safety and IntelliSense support
+| Contract | Address |
+|----------|---------|
+| DEX Router | `0x0B79d71AE99528D1dB24A4148b5f4F865cc2b137` |
+| Bonding Curve Router | `0x6F6B8F1a20703309951a5127c45B49b1CD981A22` |
+| Lens | `0x7e78A8DE94f21804F7a17F4E8BF9EC2c872187ea` |
+| Curve | `0xA7283d07812a02AFB7C09B60f8896bCEA3F90aCE` |
+| WMON | `0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A` |
+| V3 Factory | `0x6B5F564339DbAD6b780249827f2198a841FEB7F3` |
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) for details.
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Add tests for new functionality
-4. Submit a pull request
-
-## Support
-
-- 📖 [Examples](examples/) - Comprehensive usage examples
-- 🐛 [Issues](https://github.com/yourusername/nadfun-sdk-typescript/issues) - Bug reports and feature requests
+MIT
