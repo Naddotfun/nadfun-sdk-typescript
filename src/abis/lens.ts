@@ -1,60 +1,76 @@
 export const lensAbi = [
   {
-    inputs: [
-      { internalType: 'address', name: '_curve', type: 'address' },
-      { internalType: 'address', name: '_dexRouter', type: 'address' },
-      { internalType: 'address', name: '_curveRouter', type: 'address' },
+    type: 'function',
+    name: 'availableBuyTokens',
+    inputs: [{ name: '_token', type: 'address', internalType: 'address' }],
+    outputs: [
+      {
+        name: 'availableBuyToken',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
+      {
+        name: 'requiredMonAmount',
+        type: 'uint256',
+        internalType: 'uint256',
+      },
     ],
-    stateMutability: 'nonpayable',
-    type: 'constructor',
-  },
-  {
-    inputs: [],
-    name: 'curve',
-    outputs: [{ internalType: 'address', name: '', type: 'address' }],
     stateMutability: 'view',
-    type: 'function',
   },
   {
-    inputs: [],
-    name: 'dexRouter',
-    outputs: [{ internalType: 'address', name: '', type: 'address' }],
-    stateMutability: 'view',
     type: 'function',
-  },
-  {
-    inputs: [],
-    name: 'curveRouter',
-    outputs: [{ internalType: 'address', name: '', type: 'address' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [
-      { internalType: 'address', name: '_token', type: 'address' },
-      { internalType: 'uint256', name: '_amountOut', type: 'uint256' },
-      { internalType: 'bool', name: '_isBuy', type: 'bool' },
-    ],
     name: 'getAmountIn',
-    outputs: [
-      { internalType: 'address', name: '', type: 'address' },
-      { internalType: 'uint256', name: '', type: 'uint256' },
+    inputs: [
+      { name: '_token', type: 'address', internalType: 'address' },
+      { name: '_amountOut', type: 'uint256', internalType: 'uint256' },
+      { name: '_isBuy', type: 'bool', internalType: 'bool' },
     ],
-    stateMutability: 'nonpayable',
-    type: 'function',
+    outputs: [
+      { name: 'router', type: 'address', internalType: 'address' },
+      { name: 'amountIn', type: 'uint256', internalType: 'uint256' },
+    ],
+    stateMutability: 'view',
   },
   {
-    inputs: [
-      { internalType: 'address', name: '_token', type: 'address' },
-      { internalType: 'uint256', name: '_amountIn', type: 'uint256' },
-      { internalType: 'bool', name: '_isBuy', type: 'bool' },
-    ],
-    name: 'getAmountOut',
-    outputs: [
-      { internalType: 'address', name: '', type: 'address' },
-      { internalType: 'uint256', name: '', type: 'uint256' },
-    ],
-    stateMutability: 'nonpayable',
     type: 'function',
+    name: 'getAmountOut',
+    inputs: [
+      { name: '_token', type: 'address', internalType: 'address' },
+      { name: '_amountIn', type: 'uint256', internalType: 'uint256' },
+      { name: '_isBuy', type: 'bool', internalType: 'bool' },
+    ],
+    outputs: [
+      { name: 'router', type: 'address', internalType: 'address' },
+      { name: 'amountOut', type: 'uint256', internalType: 'uint256' },
+    ],
+    stateMutability: 'view',
   },
-]
+  {
+    type: 'function',
+    name: 'getInitialBuyAmountOut',
+    inputs: [{ name: '_amountIn', type: 'uint256', internalType: 'uint256' }],
+    outputs: [{ name: 'amountOut', type: 'uint256', internalType: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'getProgress',
+    inputs: [{ name: '_token', type: 'address', internalType: 'address' }],
+    outputs: [{ name: 'progress', type: 'uint256', internalType: 'uint256' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'isGraduated',
+    inputs: [{ name: '_token', type: 'address', internalType: 'address' }],
+    outputs: [{ name: 'isGraduated', type: 'bool', internalType: 'bool' }],
+    stateMutability: 'view',
+  },
+  {
+    type: 'function',
+    name: 'isLocked',
+    inputs: [{ name: '_token', type: 'address', internalType: 'address' }],
+    outputs: [{ name: 'isLocked', type: 'bool', internalType: 'bool' }],
+    stateMutability: 'view',
+  },
+] as const

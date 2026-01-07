@@ -195,4 +195,4 @@ export const v3factoryAbi = [
     ],
     anonymous: false,
   },
-]
+] as const

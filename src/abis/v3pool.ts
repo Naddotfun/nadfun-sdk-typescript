@@ -1040,4 +1040,4 @@ export const v3PoolAbi = [
     name: 'TUM',
     inputs: [],
   },
-]
+] as const
