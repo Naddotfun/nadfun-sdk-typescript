@@ -7,15 +7,15 @@ import { initSDK } from '../src'
 import { network, rpcUrl, privateKey } from './common'
 
 async function main() {
-  const sdk = initSDK({ rpcUrl, privateKey, network })
+  const nadSDK = initSDK({ rpcUrl, privateKey, network })
 
   console.log('Network:', network)
 
   // Create curve indexer
-  const indexer = sdk.createCurveIndexer()
+  const indexer = nadSDK.createCurveIndexer()
 
   // Get recent block (RPC limits to 100 block range)
-  const latestBlock = await sdk.publicClient.getBlockNumber()
+  const latestBlock = await nadSDK.publicClient.getBlockNumber()
   const fromBlock = latestBlock - 100n
   const toBlock = latestBlock
 

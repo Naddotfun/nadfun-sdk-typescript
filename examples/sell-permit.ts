@@ -7,13 +7,13 @@ import { initSDK, formatEther } from '../src'
 import { network, rpcUrl, privateKey, tokenAddress } from './common'
 
 async function main() {
-  const sdk = initSDK({ rpcUrl, privateKey, network })
+  const nadSDK = initSDK({ rpcUrl, privateKey, network })
 
   console.log('Network:', network)
-  console.log('Wallet:', sdk.account.address)
+  console.log('Wallet:', nadSDK.account.address)
 
   // Check balance
-  const balance = await sdk.getBalance(tokenAddress)
+  const balance = await nadSDK.getBalance(tokenAddress)
   console.log('Balance:', formatEther(balance))
 
   if (balance === 0n) {
@@ -24,7 +24,7 @@ async function main() {
   const amountIn = balance
 
   // Get quote
-  const { router, amount } = await sdk.getAmountOut(tokenAddress, amountIn, false)
+  const { router, amount } = await nadSDK.getAmountOut(tokenAddress, amountIn, false)
   console.log(`Quote: ${formatEther(amountIn)} tokens -> ${formatEther(amount)} MON`)
   console.log('Router:', router)
 
@@ -33,17 +33,17 @@ async function main() {
   const deadline = BigInt(Math.floor(Date.now() / 1000) + 300)
 
   // Generate permit signature
-  const permit = await sdk.generatePermitSignature(tokenAddress, router, amountIn, deadline)
+  const permit = await nadSDK.generatePermitSignature(tokenAddress, router, amountIn, deadline)
   console.log('Permit signature generated')
 
   // Sell with permit
-  const tx = await sdk.sellPermit(
+  const tx = await nadSDK.sellPermit(
     {
       token: tokenAddress,
       amountIn,
       amountOutMin,
       amountAllowance: amountIn,
-      to: sdk.account.address,
+      to: nadSDK.account.address,
       deadline,
       v: permit.v,
       r: permit.r,
@@ -54,7 +54,7 @@ async function main() {
   console.log('TX:', tx)
 
   // Check final balance
-  const finalBalance = await sdk.getBalance(tokenAddress)
+  const finalBalance = await nadSDK.getBalance(tokenAddress)
   console.log('Final Balance:', formatEther(finalBalance))
 }
 

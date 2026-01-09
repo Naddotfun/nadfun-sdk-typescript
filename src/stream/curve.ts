@@ -1,13 +1,15 @@
-import type { Address, PublicClient, Log } from 'viem'
+import type { Address, PublicClient, Log, Hex } from 'viem'
 import { createPublicClient, webSocket, parseEventLogs } from 'viem'
-import { CONTRACTS, CHAINS, DEFAULT_NETWORK, type Network } from './constants'
-import { curveAbi } from './abis/curve'
+import { CONTRACTS, CHAINS, DEFAULT_NETWORK, type Network } from '../common/constants'
+import { curveAbi } from '../abis/curve'
 
 // ==================== Types ====================
 
 export interface CurveStreamConfig {
   wsUrl: string
   network?: Network
+  tokens?: Address[]
+  eventTypes?: CurveEventType[]
 }
 
 export type CurveEventType = 'Create' | 'Buy' | 'Sell' | 'Sync' | 'TokenLocked' | 'Graduate'
@@ -15,7 +17,7 @@ export type CurveEventType = 'Create' | 'Buy' | 'Sell' | 'Sync' | 'TokenLocked' 
 interface BaseCurveEvent {
   type: CurveEventType
   blockNumber: bigint
-  transactionHash: `0x${string}`
+  transactionHash: Hex
   logIndex: number
 }
 
@@ -106,8 +108,8 @@ export function createCurveStream(config: CurveStreamConfig): CurveStream {
   const eventCallbacks: Set<(event: CurveEvent) => void> = new Set()
   const errorCallbacks: Set<(error: Error) => void> = new Set()
 
-  let tokenFilter: Address[] | null = null
-  let eventTypeFilter: CurveEventType[] | null = null
+  let tokenFilter: Address[] | null = config.tokens?.length ? config.tokens : null
+  let eventTypeFilter: CurveEventType[] | null = config.eventTypes?.length ? config.eventTypes : null
 
   function parseLog(log: Log): CurveEvent | null {
     try {

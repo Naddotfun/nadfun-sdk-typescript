@@ -7,13 +7,13 @@ import { initSDK, formatEther } from '../src'
 import { network, rpcUrl, privateKey, tokenAddress } from './common'
 
 async function main() {
-  const sdk = initSDK({ rpcUrl, privateKey, network })
+  const nadSDK = initSDK({ rpcUrl, privateKey, network })
 
   console.log('Network:', network)
-  console.log('Wallet:', sdk.account.address)
+  console.log('Wallet:', nadSDK.account.address)
 
   // Check balance
-  const balance = await sdk.getBalance(tokenAddress)
+  const balance = await nadSDK.getBalance(tokenAddress)
   console.log('Balance:', formatEther(balance))
 
   if (balance === 0n) {
@@ -24,7 +24,7 @@ async function main() {
   const amountIn = balance
 
   // Get quote
-  const { router, amount } = await sdk.getAmountOut(tokenAddress, amountIn, false)
+  const { router, amount } = await nadSDK.getAmountOut(tokenAddress, amountIn, false)
   console.log(`Quote: ${formatEther(amountIn)} tokens -> ${formatEther(amount)} MON`)
   console.log('Router:', router)
 
@@ -34,15 +34,15 @@ async function main() {
 
   // Approve
   console.log('Approving...')
-  await sdk.approve(tokenAddress, router, amountIn)
+  await nadSDK.approve(tokenAddress, router, amountIn)
 
   // Sell
-  const tx = await sdk.sell(
+  const tx = await nadSDK.sell(
     {
       token: tokenAddress,
       amountIn,
       amountOutMin,
-      to: sdk.account.address,
+      to: nadSDK.account.address,
       deadline,
     },
     router
@@ -50,7 +50,7 @@ async function main() {
   console.log('TX:', tx)
 
   // Check final balance
-  const finalBalance = await sdk.getBalance(tokenAddress)
+  const finalBalance = await nadSDK.getBalance(tokenAddress)
   console.log('Final Balance:', formatEther(finalBalance))
 }
 

@@ -7,13 +7,13 @@ import { initSDK, parseEther, formatEther } from '../src'
 import { network, rpcUrl, privateKey, tokenAddress } from './common'
 
 async function main() {
-  const sdk = initSDK({ rpcUrl, privateKey, network })
+  const nadSDK = initSDK({ rpcUrl, privateKey, network })
 
   console.log('Network:', network)
-  console.log('Wallet:', sdk.account.address)
+  console.log('Wallet:', nadSDK.account.address)
 
   // Buy
-  const tx = await sdk.simpleBuy({
+  const tx = await nadSDK.simpleBuy({
     token: tokenAddress,
     amountIn: parseEther('0.1'),
     slippagePercent: 1,
@@ -21,7 +21,7 @@ async function main() {
   console.log('TX:', tx)
 
   // Check balance
-  const balance = await sdk.getBalance(tokenAddress)
+  const balance = await nadSDK.getBalance(tokenAddress)
   console.log('Balance:', formatEther(balance))
 }
 

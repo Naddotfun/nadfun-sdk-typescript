@@ -38,16 +38,22 @@ await sdk.simpleSell({
 
 ```
 src/
-├── index.ts          # Main exports
-├── sdk.ts            # SDK factory (initSDK)
-├── core.ts           # Core trading & curve operations
-├── tokenHelper.ts    # ERC20 token operations
-├── curveStream.ts    # Real-time curve event streaming
-├── curveIndexer.ts   # Historical curve event indexing
-├── dexStream.ts      # Real-time DEX swap streaming
-├── dexIndexer.ts     # Historical DEX swap indexing
-├── constants.ts      # Network contracts & chain configs
-└── abis/             # Contract ABIs
+├── index.ts              # Main exports
+├── core.ts               # SDK factory (initSDK, NadFunSDK)
+├── common/
+│   ├── constants.ts      # Network contracts & chain configs
+│   └── utils.ts          # Utility functions
+├── trading/
+│   └── trading.ts        # Trading operations (buy, sell, quote)
+├── token/
+│   └── tokenHelper.ts    # ERC20 token operations
+├── stream/
+│   ├── curve.ts          # Real-time curve event streaming
+│   └── dex.ts            # Real-time DEX swap streaming
+├── indexer/
+│   ├── curve.ts          # Historical curve event indexing
+│   └── dex.ts            # Historical DEX swap indexing
+└── abis/                 # Contract ABIs
     ├── curve.ts
     ├── router.ts
     ├── lens.ts
@@ -182,9 +188,21 @@ const amountOut = await sdk.getInitialBuyAmountOut(parseEther('1'))
 
 ### Real-time Streaming
 
+> **Note:** `wsUrl` must be provided in `initSDK` config to use streaming features.
+
 ```typescript
-// Curve events
-const stream = sdk.createCurveStream(process.env.WS_URL!)
+const sdk = initSDK({
+  rpcUrl: process.env.RPC_URL!,
+  privateKey: process.env.PRIVATE_KEY! as `0x${string}`,
+  network: 'testnet',
+  wsUrl: process.env.WS_URL!, // Required for streaming
+})
+
+// Curve events - with initial filter options
+const stream = sdk.createCurveStream({
+  tokens: [tokenAddress],
+  eventTypes: ['Create', 'Buy', 'Sell'],
+})
 
 stream.onEvent((event) => {
   console.log(`[${event.type}]`, event)
@@ -194,15 +212,18 @@ stream.onError((error) => {
   console.error('Stream error:', error)
 })
 
-stream.filterEventTypes(['Create', 'Buy', 'Sell'])
-stream.filterTokens([tokenAddress])
 stream.start()
+
+// Or set filters after creation
+stream.filterEventTypes(['Buy', 'Sell'])
+stream.filterTokens([tokenAddress])
+stream.clearFilters()
 
 // Stop streaming
 stream.stop()
 
 // DEX swaps
-const dexStream = sdk.createDexStream(process.env.WS_URL!, [poolAddress])
+const dexStream = sdk.createDexStream([poolAddress])
 dexStream.onSwap((event) => {
   console.log('Swap:', event)
 })
@@ -287,7 +308,6 @@ console.log(CHAINS.mainnet.id) // 143
 ```typescript
 import {
   calculateMinAmountOut,
-  calculateMaxAmountIn,
   parseEther,
   formatEther,
   parseUnits,
@@ -296,7 +316,6 @@ import {
 
 // Slippage calculation
 const minOut = calculateMinAmountOut(expectedAmount, 0.5) // 0.5% slippage
-const maxIn = calculateMaxAmountIn(expectedAmount, 1) // 1% slippage
 ```
 
 ## Examples
@@ -329,6 +348,7 @@ interface SDKConfig {
   rpcUrl: string
   privateKey: `0x${string}`
   network?: 'testnet' | 'mainnet' // default: 'testnet'
+  wsUrl?: string // Required for streaming features
 }
 ```
 
@@ -380,9 +400,9 @@ interface SDKConfig {
 
 | Method | Description |
 |--------|-------------|
-| `createCurveStream(wsUrl)` | Create curve event stream |
+| `createCurveStream(options?)` | Create curve event stream (requires wsUrl in config) |
 | `createCurveIndexer()` | Create curve indexer |
-| `createDexStream(wsUrl, pools)` | Create DEX stream |
+| `createDexStream(pools)` | Create DEX stream (requires wsUrl in config) |
 | `createDexIndexer(pools)` | Create DEX indexer |
 
 ### Standalone Functions
@@ -394,7 +414,6 @@ interface SDKConfig {
 | `createDexStreamWithTokens(wsUrl, rpcUrl, tokens, network?)` | Create DEX stream with auto pool discovery |
 | `createDexIndexerWithTokens(rpcUrl, tokens, network?)` | Create DEX indexer with auto pool discovery |
 | `calculateMinAmountOut(amount, slippagePercent)` | Calculate min output with slippage |
-| `calculateMaxAmountIn(amount, slippagePercent)` | Calculate max input with slippage |
 
 ### Types
 
@@ -457,9 +476,9 @@ interface TokenMetadata {
 }
 
 interface PermitSignature {
-  v: number
-  r: Hex
-  s: Hex
+  v: 27 | 28
+  r: `0x${string}`
+  s: `0x${string}`
   nonce: bigint
 }
 

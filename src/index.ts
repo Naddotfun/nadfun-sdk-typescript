@@ -1,12 +1,12 @@
 // ==================== SDK ====================
-export { initSDK } from './sdk'
-export type { SDKConfig, NadFunSDK, SimpleBuyParams, SimpleSellParams } from './sdk'
+export { initSDK } from './core'
+export type { SDKConfig, NadFunSDK, SimpleBuyParams, SimpleSellParams } from './core'
 
-// ==================== Core ====================
-export { createCore } from './core'
+// ==================== Trading ====================
+export { createTrading } from './trading/trading'
 export type {
-  CoreConfig,
-  Core,
+  TradingConfig,
+  Trading,
   QuoteResult,
   CurveState,
   AvailableBuyTokens,
@@ -15,19 +15,19 @@ export type {
   SellParams,
   SellPermitParams,
   GasEstimationParams,
-} from './core'
+} from './trading/trading'
 
 // ==================== Token Helper ====================
-export { createTokenHelper } from './tokenHelper'
+export { createTokenHelper } from './token/tokenHelper'
 export type {
   TokenHelperConfig,
   TokenHelper,
   TokenMetadata,
   PermitSignature,
-} from './tokenHelper'
+} from './token/tokenHelper'
 
 // ==================== Curve Stream ====================
-export { createCurveStream } from './curveStream'
+export { createCurveStream } from './stream/curve'
 export type {
   CurveStreamConfig,
   CurveStream,
@@ -39,15 +39,15 @@ export type {
   SyncEvent,
   TokenLockedEvent,
   GraduateEvent,
-} from './curveStream'
+} from './stream/curve'
 
 // ==================== Curve Indexer ====================
-export { createCurveIndexer } from './curveIndexer'
+export { createCurveIndexer } from './indexer/curve'
 export type {
   CurveIndexerConfig,
   CurveIndexer,
   EventFilter,
-} from './curveIndexer'
+} from './indexer/curve'
 
 // ==================== DEX Stream ====================
 export {
@@ -55,17 +55,17 @@ export {
   createDexStreamWithTokens,
   discoverPoolForToken,
   discoverPoolsForTokens,
-} from './dexStream'
+} from './stream/dex'
 export type {
   DexStreamConfig,
   DexStream,
   SwapEvent,
   PoolDiscoveryConfig,
-} from './dexStream'
+} from './stream/dex'
 
 // ==================== DEX Indexer ====================
-export { createDexIndexer, createDexIndexerWithTokens } from './dexIndexer'
-export type { DexIndexerConfig, DexIndexer, SwapFilter, PoolInfo } from './dexIndexer'
+export { createDexIndexer, createDexIndexerWithTokens } from './indexer/dex'
+export type { DexIndexerConfig, DexIndexer, SwapFilter, PoolInfo } from './indexer/dex'
 
 // ==================== Constants ====================
 export {
@@ -74,30 +74,11 @@ export {
   DEFAULT_NETWORK,
   DEFAULT_DEADLINE_SECONDS,
   NADS_FEE_TIER,
-} from './constants'
-export type { Network, NetworkContracts } from './constants'
+} from './common/constants'
+export type { Network, NetworkContracts } from './common/constants'
 
 // ==================== Utilities ====================
-
-/**
- * Calculate minimum amount out with slippage tolerance
- * @param amountOut - Expected output amount
- * @param slippagePercent - Slippage tolerance in percent (e.g., 0.5 for 0.5%)
- */
-export function calculateMinAmountOut(amountOut: bigint, slippagePercent: number): bigint {
-  const slippageBps = BigInt(Math.floor(slippagePercent * 100))
-  return (amountOut * (10000n - slippageBps)) / 10000n
-}
-
-/**
- * Calculate maximum amount in with slippage tolerance
- * @param amountIn - Expected input amount
- * @param slippagePercent - Slippage tolerance in percent (e.g., 0.5 for 0.5%)
- */
-export function calculateMaxAmountIn(amountIn: bigint, slippagePercent: number): bigint {
-  const slippageBps = BigInt(Math.floor(slippagePercent * 100))
-  return (amountIn * (10000n + slippageBps)) / 10000n
-}
+export { calculateMinAmountOut } from './common/utils'
 
 // Re-export viem utilities for convenience
 export { parseEther, formatEther, parseUnits, formatUnits } from 'viem'

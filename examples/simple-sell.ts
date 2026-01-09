@@ -7,13 +7,13 @@ import { initSDK, formatEther } from '../src'
 import { network, rpcUrl, privateKey, tokenAddress } from './common'
 
 async function main() {
-  const sdk = initSDK({ rpcUrl, privateKey, network })
+  const nadSDK = initSDK({ rpcUrl, privateKey, network })
 
   console.log('Network:', network)
-  console.log('Wallet:', sdk.account.address)
+  console.log('Wallet:', nadSDK.account.address)
 
   // Check balance
-  const balance = await sdk.getBalance(tokenAddress)
+  const balance = await nadSDK.getBalance(tokenAddress)
   console.log('Balance:', formatEther(balance))
 
   if (balance === 0n) {
@@ -22,7 +22,7 @@ async function main() {
   }
 
   // Sell all (includes automatic approve)
-  const tx = await sdk.simpleSell({
+  const tx = await nadSDK.simpleSell({
     token: tokenAddress,
     amountIn: balance,
     slippagePercent: 1,
@@ -30,7 +30,7 @@ async function main() {
   console.log('TX:', tx)
 
   // Check final balance
-  const finalBalance = await sdk.getBalance(tokenAddress)
+  const finalBalance = await nadSDK.getBalance(tokenAddress)
   console.log('Final Balance:', formatEther(finalBalance))
 }
 

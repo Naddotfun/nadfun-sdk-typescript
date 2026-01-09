@@ -7,15 +7,15 @@ import { initSDK, parseEther, formatEther } from '../src'
 import { network, rpcUrl, privateKey, tokenAddress } from './common'
 
 async function main() {
-  const sdk = initSDK({ rpcUrl, privateKey, network })
+  const nadSDK = initSDK({ rpcUrl, privateKey, network })
 
   console.log('Network:', network)
-  console.log('Wallet:', sdk.account.address)
+  console.log('Wallet:', nadSDK.account.address)
 
   const amountIn = parseEther('0.1')
 
   // Get quote
-  const { router, amount } = await sdk.getAmountOut(tokenAddress, amountIn, true)
+  const { router, amount } = await nadSDK.getAmountOut(tokenAddress, amountIn, true)
   console.log(`Quote: ${formatEther(amountIn)} MON -> ${formatEther(amount)} tokens`)
   console.log('Router:', router)
 
@@ -24,12 +24,12 @@ async function main() {
   const deadline = BigInt(Math.floor(Date.now() / 1000) + 300)
 
   // Buy
-  const tx = await sdk.buy(
+  const tx = await nadSDK.buy(
     {
       token: tokenAddress,
       amountIn,
       amountOutMin,
-      to: sdk.account.address,
+      to: nadSDK.account.address,
       deadline,
     },
     router
@@ -37,7 +37,7 @@ async function main() {
   console.log('TX:', tx)
 
   // Check balance
-  const balance = await sdk.getBalance(tokenAddress)
+  const balance = await nadSDK.getBalance(tokenAddress)
   console.log('Balance:', formatEther(balance))
 }
 

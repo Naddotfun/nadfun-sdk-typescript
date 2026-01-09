@@ -1,8 +1,8 @@
 import type { Address, PublicClient, WalletClient, PrivateKeyAccount, Hex } from 'viem'
 import { createPublicClient, createWalletClient, http, erc20Abi, formatUnits } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
-import { CHAINS, DEFAULT_NETWORK, type Network } from './constants'
-import { tokenAbi } from './abis/token'
+import { CHAINS, DEFAULT_NETWORK, type Network } from '../common/constants'
+import { tokenAbi } from '../abis/token'
 
 // ==================== Types ====================
 
@@ -21,9 +21,9 @@ export interface TokenMetadata {
 }
 
 export interface PermitSignature {
-  v: number
-  r: Hex
-  s: Hex
+  v: 27 | 28
+  r: `0x${string}`
+  s: `0x${string}`
   nonce: bigint
 }
 
@@ -43,8 +43,8 @@ export interface TokenHelper {
   getTotalSupply: (token: Address) => Promise<bigint>
   getNonce: (token: Address, owner?: Address) => Promise<bigint>
 
-  approve: (token: Address, spender: Address, amount: bigint, options?: { gasLimit?: bigint }) => Promise<`0x${string}`>
-  transfer: (token: Address, to: Address, amount: bigint, options?: { gasLimit?: bigint }) => Promise<`0x${string}`>
+  approve: (token: Address, spender: Address, amount: bigint, options?: { gasLimit?: bigint }) => Promise<Hex>
+  transfer: (token: Address, to: Address, amount: bigint, options?: { gasLimit?: bigint }) => Promise<Hex>
 
   generatePermitSignature: (token: Address, spender: Address, value: bigint, deadline: bigint, owner?: Address) => Promise<PermitSignature>
 
@@ -225,9 +225,9 @@ export function createTokenHelper(config: TokenHelperConfig): TokenHelper {
         message: { owner: ownerAddr, spender, value, nonce, deadline },
       })
 
-      const r = `0x${signature.slice(2, 66)}` as Hex
-      const s = `0x${signature.slice(66, 130)}` as Hex
-      const v = parseInt(signature.slice(130, 132), 16)
+      const r = `0x${signature.slice(2, 66)}` as `0x${string}`
+      const s = `0x${signature.slice(66, 130)}` as `0x${string}`
+      const v = parseInt(signature.slice(130, 132), 16) as 27 | 28
 
       return { v, r, s, nonce }
     },

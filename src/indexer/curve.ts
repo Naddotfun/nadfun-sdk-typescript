@@ -1,7 +1,7 @@
 import type { Address, PublicClient } from 'viem'
 import { createPublicClient, http } from 'viem'
-import { CONTRACTS, CHAINS, DEFAULT_NETWORK, type Network } from './constants'
-import { curveAbi } from './abis/curve'
+import { CONTRACTS, CHAINS, DEFAULT_NETWORK, type Network } from '../common/constants'
+import { curveAbi } from '../abis/curve'
 import type {
   CurveEvent,
   CurveEventType,
@@ -11,7 +11,7 @@ import type {
   SyncEvent,
   TokenLockedEvent,
   GraduateEvent,
-} from './curveStream'
+} from '../stream/curve'
 
 // ==================== Types ====================
 
