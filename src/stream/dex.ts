@@ -1,8 +1,8 @@
-import type { Address, PublicClient } from 'viem'
+import type { Address, PublicClient, Hex } from 'viem'
 import { createPublicClient, webSocket, http } from 'viem'
-import { CONTRACTS, CHAINS, DEFAULT_NETWORK, NADS_FEE_TIER, type Network } from './constants'
-import { v3PoolAbi } from './abis/v3pool'
-import { v3factoryAbi } from './abis/v3factory'
+import { CONTRACTS, CHAINS, DEFAULT_NETWORK, NADS_FEE_TIER, type Network } from '../common/constants'
+import { v3PoolAbi } from '../abis/v3pool'
+import { v3factoryAbi } from '../abis/v3factory'
 
 // ==================== Types ====================
 
@@ -22,7 +22,7 @@ export interface SwapEvent {
   liquidity: bigint
   tick: number
   blockNumber: bigint
-  transactionHash: `0x${string}`
+  transactionHash: Hex
   logIndex: number
 }
 

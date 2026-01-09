@@ -1,366 +1,128 @@
-import type { Address, PublicClient, WalletClient, PrivateKeyAccount } from 'viem'
-import { createPublicClient, createWalletClient, http, encodeFunctionData } from 'viem'
-import { privateKeyToAccount } from 'viem/accounts'
-import { CONTRACTS, CHAINS, DEFAULT_NETWORK, type Network } from './constants'
-import { curveAbi } from './abis/curve'
-import { lensAbi } from './abis/lens'
-import { routerAbi, bondingCurveRouterAbi } from './abis/router'
+import type { Address, Hex } from 'viem'
+import { createTrading, type Trading } from './trading/trading'
+import { createTokenHelper, type TokenHelper } from './token/tokenHelper'
+import { createCurveStream, type CurveStream, type CurveEventType } from './stream/curve'
+import { createCurveIndexer, type CurveIndexer } from './indexer/curve'
+import { createDexStream, type DexStream } from './stream/dex'
+import { createDexIndexer, type DexIndexer } from './indexer/dex'
+import { DEFAULT_NETWORK, type Network } from './common/constants'
+import { calculateMinAmountOut } from './common/utils'
 
 // ==================== Types ====================
 
-export interface CoreConfig {
+export interface SDKConfig {
   rpcUrl: string
   privateKey: `0x${string}`
   network?: Network
+  wsUrl?: string
 }
 
-export interface QuoteResult {
-  router: Address
-  amount: bigint
-}
-
-export interface CurveState {
-  realMonReserve: bigint
-  realTokenReserve: bigint
-  virtualMonReserve: bigint
-  virtualTokenReserve: bigint
-  k: bigint
-  targetTokenAmount: bigint
-  initVirtualMonReserve: bigint
-  initVirtualTokenReserve: bigint
-}
-
-export interface AvailableBuyTokens {
-  availableBuyToken: bigint
-  requiredMonAmount: bigint
-}
-
-export interface TradeParams {
+export interface SimpleBuyParams {
   token: Address
-  to: Address
   amountIn: bigint
-  amountOutMin: bigint
+  slippagePercent?: number
+  to?: Address
   deadline?: bigint
   gasLimit?: bigint
   gasPrice?: bigint
   nonce?: number
 }
 
-export type BuyParams = TradeParams
-export type SellParams = TradeParams
-
-export interface SellPermitParams extends TradeParams {
-  amountAllowance: bigint
-  v: number
-  r: `0x${string}`
-  s: `0x${string}`
-}
-
-interface BaseGasParams {
+export interface SimpleSellParams {
   token: Address
   amountIn: bigint
-  amountOutMin: bigint
-  to: Address
+  slippagePercent?: number
+  to?: Address
   deadline?: bigint
+  gasLimit?: bigint
+  gasPrice?: bigint
+  nonce?: number
 }
 
-export type GasEstimationParams =
-  | (BaseGasParams & { type: 'buy' })
-  | (BaseGasParams & { type: 'sell' })
-  | (BaseGasParams & {
-      type: 'sellPermit'
-      amountAllowance: bigint
-      deadline: bigint
-      v: number
-      r: `0x${string}`
-      s: `0x${string}`
-    })
+export interface NadFunSDK extends Omit<Trading, 'publicClient' | 'walletClient' | 'account'>, Omit<TokenHelper, 'publicClient' | 'walletClient' | 'account' | 'address'> {
+  // Clients
+  readonly publicClient: Trading['publicClient']
+  readonly walletClient: Trading['walletClient']
+  readonly account: Trading['account']
+  readonly network: Network
 
-export interface Core {
-  readonly publicClient: PublicClient
-  readonly walletClient: WalletClient
-  readonly account: PrivateKeyAccount
+  // Trade (simple)
+  simpleBuy: (params: SimpleBuyParams) => Promise<Hex>
+  simpleSell: (params: SimpleSellParams) => Promise<Hex>
 
-  getAmountOut: (token: Address, amountIn: bigint, isBuy: boolean) => Promise<QuoteResult>
-  getAmountIn: (token: Address, amountOut: bigint, isBuy: boolean) => Promise<QuoteResult>
-
-  buy: (params: BuyParams, router: Address) => Promise<`0x${string}`>
-  sell: (params: SellParams, router: Address) => Promise<`0x${string}`>
-  sellPermit: (params: SellPermitParams, router: Address) => Promise<`0x${string}`>
-
-  getCurveState: (token: Address) => Promise<CurveState>
-  getAvailableBuyTokens: (token: Address) => Promise<AvailableBuyTokens>
-  isGraduated: (token: Address) => Promise<boolean>
-  isLocked: (token: Address) => Promise<boolean>
-
-  getProgress: (token: Address) => Promise<bigint>
-  getInitialBuyAmountOut: (amountIn: bigint) => Promise<bigint>
-
-  estimateGas: (routerAddress: Address, params: GasEstimationParams) => Promise<bigint>
+  // Stream Factories
+  createCurveStream: (options?: { tokens?: Address[]; eventTypes?: CurveEventType[] }) => CurveStream
+  createCurveIndexer: () => CurveIndexer
+  createDexStream: (pools: Address[]) => DexStream
+  createDexIndexer: (pools: Address[]) => DexIndexer
 }
 
 // ==================== Factory ====================
 
-export function createCore(config: CoreConfig): Core {
+export function initSDK(config: SDKConfig): NadFunSDK {
   const network = config.network ?? DEFAULT_NETWORK
-  const chain = CHAINS[network]
-  const contracts = CONTRACTS[network]
+  const trading = createTrading(config)
+  const token = createTokenHelper(config)
 
-  const publicClient = createPublicClient({
-    chain,
-    transport: http(config.rpcUrl),
-  })
+  async function simpleBuy(params: SimpleBuyParams): Promise<Hex> {
+    const { router, amount } = await trading.getAmountOut(params.token, params.amountIn, true)
+    const amountOutMin = calculateMinAmountOut(amount, params.slippagePercent ?? 0.5)
 
-  const account = privateKeyToAccount(config.privateKey)
+    return trading.buy(
+      {
+        token: params.token,
+        amountIn: params.amountIn,
+        amountOutMin,
+        to: params.to ?? trading.account.address,
+        deadline: params.deadline,
+        gasLimit: params.gasLimit,
+        gasPrice: params.gasPrice,
+        nonce: params.nonce,
+      },
+      router
+    )
+  }
 
-  const walletClient = createWalletClient({
-    account,
-    chain,
-    transport: http(config.rpcUrl),
-  })
+  async function simpleSell(params: SimpleSellParams): Promise<Hex> {
+    const { router, amount } = await trading.getAmountOut(params.token, params.amountIn, false)
+    const amountOutMin = calculateMinAmountOut(amount, params.slippagePercent ?? 0.5)
+
+    await token.approve(params.token, router, params.amountIn)
+
+    return trading.sell(
+      {
+        token: params.token,
+        amountIn: params.amountIn,
+        amountOutMin,
+        to: params.to ?? trading.account.address,
+        deadline: params.deadline,
+        gasLimit: params.gasLimit,
+        gasPrice: params.gasPrice,
+        nonce: params.nonce,
+      },
+      router
+    )
+  }
 
   return {
-    publicClient,
-    walletClient,
-    account,
-
-    async getAmountOut(token, amountIn, isBuy) {
-      const [router, amount] = await publicClient.readContract({
-        address: contracts.LENS,
-        abi: lensAbi,
-        functionName: 'getAmountOut',
-        args: [token, amountIn, isBuy],
-      })
-      return { router, amount }
-    },
-
-    async getAmountIn(token, amountOut, isBuy) {
-      const [router, amount] = await publicClient.readContract({
-        address: contracts.LENS,
-        abi: lensAbi,
-        functionName: 'getAmountIn',
-        args: [token, amountOut, isBuy],
-      })
-      return { router, amount }
-    },
-
-    async buy(params, router) {
-      const hash = await walletClient.sendTransaction({
-        account,
-        to: router,
-        data: encodeFunctionData({
-          abi: routerAbi,
-          functionName: 'buy',
-          args: [
-            {
-              amountOutMin: params.amountOutMin,
-              token: params.token,
-              to: params.to,
-              deadline: params.deadline ?? BigInt(Math.floor(Date.now() / 1000) + 3600),
-            },
-          ],
-        }),
-        value: params.amountIn,
-        gas: params.gasLimit,
-        gasPrice: params.gasPrice,
-        nonce: params.nonce,
-        chain,
-      })
-      const receipt = await publicClient.waitForTransactionReceipt({ hash })
-      return receipt.transactionHash
-    },
-
-    async sell(params, router) {
-      const hash = await walletClient.sendTransaction({
-        account,
-        to: router,
-        data: encodeFunctionData({
-          abi: routerAbi,
-          functionName: 'sell',
-          args: [
-            {
-              amountIn: params.amountIn,
-              amountOutMin: params.amountOutMin,
-              token: params.token,
-              to: params.to,
-              deadline: params.deadline ?? BigInt(Math.floor(Date.now() / 1000) + 3600),
-            },
-          ],
-        }),
-        gas: params.gasLimit,
-        gasPrice: params.gasPrice,
-        nonce: params.nonce,
-        chain,
-      })
-      const receipt = await publicClient.waitForTransactionReceipt({ hash })
-      return receipt.transactionHash
-    },
-
-    async sellPermit(params, router) {
-      const hash = await walletClient.sendTransaction({
-        account,
-        to: router,
-        data: encodeFunctionData({
-          abi: routerAbi,
-          functionName: 'sellPermit',
-          args: [
-            {
-              amountIn: params.amountIn,
-              amountOutMin: params.amountOutMin,
-              amountAllowance: params.amountAllowance,
-              token: params.token,
-              to: params.to,
-              deadline: params.deadline!,
-              v: params.v,
-              r: params.r,
-              s: params.s,
-            },
-          ],
-        }),
-        gas: params.gasLimit,
-        gasPrice: params.gasPrice,
-        nonce: params.nonce,
-        chain,
-      })
-      const receipt = await publicClient.waitForTransactionReceipt({ hash })
-      return receipt.transactionHash
-    },
-
-    async getCurveState(token) {
-      const result = await publicClient.readContract({
-        address: contracts.CURVE,
-        abi: curveAbi,
-        functionName: 'curves',
-        args: [token],
-      })
-      return {
-        realMonReserve: result[0],
-        realTokenReserve: result[1],
-        virtualMonReserve: result[2],
-        virtualTokenReserve: result[3],
-        k: result[4],
-        targetTokenAmount: result[5],
-        initVirtualMonReserve: result[6],
-        initVirtualTokenReserve: result[7],
+    ...trading,
+    ...token,
+    network,
+    simpleBuy,
+    simpleSell,
+    createCurveStream: (options) => {
+      if (!config.wsUrl) {
+        throw new Error('wsUrl is required in SDKConfig to use createCurveStream')
       }
+      return createCurveStream({ wsUrl: config.wsUrl, network, ...options })
     },
-
-    async getAvailableBuyTokens(token) {
-      const [availableBuyToken, requiredMonAmount] = await publicClient.readContract({
-        address: contracts.BONDING_CURVE_ROUTER,
-        abi: bondingCurveRouterAbi,
-        functionName: 'availableBuyTokens',
-        args: [token],
-      })
-      return { availableBuyToken, requiredMonAmount }
-    },
-
-    async isGraduated(token) {
-      return publicClient.readContract({
-        address: contracts.CURVE,
-        abi: curveAbi,
-        functionName: 'isGraduated',
-        args: [token],
-      })
-    },
-
-    async isLocked(token) {
-      return publicClient.readContract({
-        address: contracts.CURVE,
-        abi: curveAbi,
-        functionName: 'isLocked',
-        args: [token],
-      })
-    },
-
-    async getProgress(token) {
-      return publicClient.readContract({
-        address: contracts.LENS,
-        abi: lensAbi,
-        functionName: 'getProgress',
-        args: [token],
-      })
-    },
-
-    async getInitialBuyAmountOut(amountIn) {
-      return publicClient.readContract({
-        address: contracts.LENS,
-        abi: lensAbi,
-        functionName: 'getInitialBuyAmountOut',
-        args: [amountIn],
-      })
-    },
-
-    async estimateGas(routerAddress, params) {
-      const defaultDeadline = BigInt(Math.floor(Date.now() / 1000) + 3600)
-
-      if (params.type === 'buy') {
-        const callData = encodeFunctionData({
-          abi: routerAbi,
-          functionName: 'buy',
-          args: [
-            {
-              amountOutMin: params.amountOutMin,
-              token: params.token,
-              to: params.to,
-              deadline: params.deadline ?? defaultDeadline,
-            },
-          ],
-        })
-        return publicClient.estimateGas({
-          account: account.address,
-          to: routerAddress,
-          data: callData,
-          value: params.amountIn,
-        })
+    createCurveIndexer: () => createCurveIndexer({ rpcUrl: config.rpcUrl, network }),
+    createDexStream: (pools) => {
+      if (!config.wsUrl) {
+        throw new Error('wsUrl is required in SDKConfig to use createDexStream')
       }
-
-      if (params.type === 'sell') {
-        const callData = encodeFunctionData({
-          abi: routerAbi,
-          functionName: 'sell',
-          args: [
-            {
-              amountIn: params.amountIn,
-              amountOutMin: params.amountOutMin,
-              token: params.token,
-              to: params.to,
-              deadline: params.deadline ?? defaultDeadline,
-            },
-          ],
-        })
-        return publicClient.estimateGas({
-          account: account.address,
-          to: routerAddress,
-          data: callData,
-          value: 0n,
-        })
-      }
-
-      // sellPermit
-      const callData = encodeFunctionData({
-        abi: routerAbi,
-        functionName: 'sellPermit',
-        args: [
-          {
-            amountIn: params.amountIn,
-            amountOutMin: params.amountOutMin,
-            amountAllowance: params.amountAllowance,
-            token: params.token,
-            to: params.to,
-            deadline: params.deadline,
-            v: params.v,
-            r: params.r,
-            s: params.s,
-          },
-        ],
-      })
-      return publicClient.estimateGas({
-        account: account.address,
-        to: routerAddress,
-        data: callData,
-        value: 0n,
-      })
+      return createDexStream({ wsUrl: config.wsUrl, pools, network })
     },
+    createDexIndexer: (pools) => createDexIndexer({ rpcUrl: config.rpcUrl, pools, network }),
   }
 }

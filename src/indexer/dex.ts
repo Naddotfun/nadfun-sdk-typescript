@@ -1,8 +1,8 @@
 import type { Address, PublicClient } from 'viem'
 import { createPublicClient, http } from 'viem'
-import { CHAINS, DEFAULT_NETWORK, type Network } from './constants'
-import { v3PoolAbi } from './abis/v3pool'
-import { type SwapEvent, discoverPoolsForTokens } from './dexStream'
+import { CHAINS, DEFAULT_NETWORK, type Network } from '../common/constants'
+import { v3PoolAbi } from '../abis/v3pool'
+import { type SwapEvent, discoverPoolsForTokens } from '../stream/dex'
 
 // ==================== Types ====================
 

@@ -1,17 +1,17 @@
 import { monadTestnet } from 'viem/chains'
-import type { Chain } from 'viem'
+import type { Chain, Address } from 'viem'
 
 // ==================== Network ====================
 
 export type Network = 'testnet' | 'mainnet'
 
 export interface NetworkContracts {
-  DEX_ROUTER: `0x${string}`
-  BONDING_CURVE_ROUTER: `0x${string}`
-  LENS: `0x${string}`
-  CURVE: `0x${string}`
-  WMON: `0x${string}`
-  V3_FACTORY: `0x${string}`
+  DEX_ROUTER: Address
+  BONDING_CURVE_ROUTER: Address
+  LENS: Address
+  CURVE: Address
+  WMON: Address
+  V3_FACTORY: Address
 }
 
 // ==================== Contracts ====================
