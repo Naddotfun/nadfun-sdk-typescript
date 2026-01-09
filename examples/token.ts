@@ -7,14 +7,14 @@ import { initSDK, formatEther } from '../src'
 import { network, rpcUrl, privateKey, tokenAddress } from './common'
 
 async function main() {
-  const sdk = initSDK({ rpcUrl, privateKey, network })
+  const nadSDK = initSDK({ rpcUrl, privateKey, network })
 
   console.log('Network:', network)
-  console.log('Wallet:', sdk.account.address)
+  console.log('Wallet:', nadSDK.account.address)
 
   // ==================== Metadata ====================
   console.log('\n--- Token Metadata ---')
-  const metadata = await sdk.getMetadata(tokenAddress)
+  const metadata = await nadSDK.getMetadata(tokenAddress)
   console.log('Name:', metadata.name)
   console.log('Symbol:', metadata.symbol)
   console.log('Decimals:', metadata.decimals)
@@ -22,28 +22,28 @@ async function main() {
 
   // ==================== Balance ====================
   console.log('\n--- Balance ---')
-  const [raw, formatted] = await sdk.getBalanceFormatted(tokenAddress)
+  const [raw, formatted] = await nadSDK.getBalanceFormatted(tokenAddress)
   console.log('Raw:', raw.toString())
   console.log('Formatted:', formatted, metadata.symbol)
 
   // ==================== Curve State ====================
   console.log('\n--- Curve State ---')
-  const isGraduated = await sdk.isGraduated(tokenAddress)
+  const isGraduated = await nadSDK.isGraduated(tokenAddress)
   console.log('Graduated:', isGraduated)
 
   if (!isGraduated) {
-    const state = await sdk.getCurveState(tokenAddress)
+    const state = await nadSDK.getCurveState(tokenAddress)
     console.log('Real MON Reserve:', formatEther(state.realMonReserve))
     console.log('Real Token Reserve:', formatEther(state.realTokenReserve))
 
-    const progress = await sdk.getProgress(tokenAddress)
+    const progress = await nadSDK.getProgress(tokenAddress)
     console.log('Progress:', `${Number(progress) / 100}%`)
   }
 
   // ==================== Allowance ====================
   console.log('\n--- Allowance ---')
   const spender = '0x0000000000000000000000000000000000000001' as `0x${string}`
-  const allowance = await sdk.getAllowance(tokenAddress, spender)
+  const allowance = await nadSDK.getAllowance(tokenAddress, spender)
   console.log('Current allowance:', formatEther(allowance))
 }
 

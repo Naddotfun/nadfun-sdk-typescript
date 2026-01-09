@@ -7,12 +7,12 @@ import { initSDK } from '../src'
 import { network, rpcUrl, wsUrl, privateKey } from './common'
 
 async function main() {
-  const sdk = initSDK({ rpcUrl, privateKey, network })
+  const nadSDK = initSDK({ rpcUrl, privateKey, network, wsUrl })
 
   console.log('Network:', network)
 
   // Create curve stream
-  const stream = sdk.createCurveStream(wsUrl)
+  const stream = nadSDK.createCurveStream()
 
   // Subscribe to events
   stream.onEvent((event) => {

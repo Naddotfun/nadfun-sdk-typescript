@@ -7,7 +7,7 @@ import { initSDK, createDexIndexerWithTokens } from '../src'
 import { network, rpcUrl, privateKey, tokenAddress } from './common'
 
 async function main() {
-  const sdk = initSDK({ rpcUrl, privateKey, network })
+  const nadSDK = initSDK({ rpcUrl, privateKey, network })
 
   console.log('Network:', network)
   console.log('Finding pool for token:', tokenAddress)
@@ -18,7 +18,7 @@ async function main() {
   console.log('Watching pools:', indexer.pools)
 
   // Get recent block (RPC limits to 100 block range)
-  const latestBlock = await sdk.publicClient.getBlockNumber()
+  const latestBlock = await nadSDK.publicClient.getBlockNumber()
   const fromBlock = latestBlock - 100n
   const toBlock = latestBlock
 
