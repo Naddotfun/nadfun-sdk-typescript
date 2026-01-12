@@ -11,3 +11,6 @@ coverage/
 
 # Release notes (managed externally)
 RELEASE_NOTES*.md
+
+# Claude workspace file
+claude.md
