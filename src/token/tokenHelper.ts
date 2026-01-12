@@ -1,8 +1,11 @@
 import type { Address, PublicClient, WalletClient, PrivateKeyAccount, Hex } from 'viem'
-import { createPublicClient, createWalletClient, http, erc20Abi, formatUnits } from 'viem'
+import { createPublicClient, createWalletClient, http, erc20Abi, formatUnits, decodeEventLog } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
-import { CHAINS, DEFAULT_NETWORK, type Network } from '../common/constants'
+import { CHAINS, CONTRACTS, API_BASE_URL, DEFAULT_NETWORK, type Network } from '../common/constants'
 import { tokenAbi } from '../abis/token'
+import { curveAbi } from '../abis/curve'
+import { lensAbi } from '../abis/lens'
+import { bondingCurveRouterAbi } from '../abis/router'
 
 // ==================== Types ====================
 
@@ -27,12 +30,87 @@ export interface PermitSignature {
   nonce: bigint
 }
 
+// ==================== Token Create Types ====================
+
+export interface UploadImageResult {
+  imageUri: string
+  isNsfw: boolean
+}
+
+export interface UploadMetadataParams {
+  imageUri: string
+  name: string
+  symbol: string
+  description: string
+  website?: string
+  twitter?: string
+  telegram?: string
+}
+
+export interface UploadMetadataResult {
+  metadataUri: string
+  metadata: {
+    name: string
+    symbol: string
+    description: string
+    imageUri: string
+    website?: string
+    twitter?: string
+    telegram?: string
+    isNsfw: boolean
+  }
+}
+
+export interface MineSaltParams {
+  creator: Address
+  name: string
+  symbol: string
+  metadataUri: string
+}
+
+export interface MineSaltResult {
+  salt: `0x${string}`
+  address: Address
+}
+
+export interface CreateTokenParams {
+  name: string
+  symbol: string
+  description: string
+  image: Buffer | Blob | File
+  imageContentType: 'image/png' | 'image/jpeg' | 'image/webp' | 'image/svg+xml'
+  website?: string
+  twitter?: string
+  telegram?: string
+  initialBuyAmount?: bigint
+  gasLimit?: bigint
+  gasPrice?: bigint
+  nonce?: number
+}
+
+export interface CreateTokenResult {
+  tokenAddress: Address
+  poolAddress: Address
+  transactionHash: Hex
+  imageUri: string
+  metadataUri: string
+  salt: `0x${string}`
+  isNsfw: boolean
+}
+
+export interface FeeConfig {
+  deployFeeAmount: bigint
+  graduateFeeAmount: bigint
+  protocolFee: number
+}
+
 export interface TokenHelper {
   readonly publicClient: PublicClient
   readonly walletClient: WalletClient
   readonly account: PrivateKeyAccount
   readonly address: Address
 
+  // ERC-20 Read
   getBalance: (token: Address, address?: Address) => Promise<bigint>
   getBalanceFormatted: (token: Address, address?: Address) => Promise<[bigint, string]>
   getAllowance: (token: Address, spender: Address, owner?: Address) => Promise<bigint>
@@ -43,15 +121,27 @@ export interface TokenHelper {
   getTotalSupply: (token: Address) => Promise<bigint>
   getNonce: (token: Address, owner?: Address) => Promise<bigint>
 
+  // ERC-20 Write
   approve: (token: Address, spender: Address, amount: bigint, options?: { gasLimit?: bigint }) => Promise<Hex>
   transfer: (token: Address, to: Address, amount: bigint, options?: { gasLimit?: bigint }) => Promise<Hex>
 
+  // ERC-2612 Permit
   generatePermitSignature: (token: Address, spender: Address, value: bigint, deadline: bigint, owner?: Address) => Promise<PermitSignature>
 
+  // Utilities
   isContract: (address: Address) => Promise<boolean>
-
   batchGetBalances: (tokens: Address[], address?: Address) => Promise<Record<string, bigint>>
   batchGetMetadata: (tokens: Address[]) => Promise<Record<string, TokenMetadata>>
+
+  // Token Creation API
+  uploadImage: (image: Buffer | Blob | File, contentType: string) => Promise<UploadImageResult>
+  uploadMetadata: (params: UploadMetadataParams) => Promise<UploadMetadataResult>
+  mineSalt: (params: MineSaltParams) => Promise<MineSaltResult>
+
+  // Token Creation Contract
+  getFeeConfig: () => Promise<FeeConfig>
+  getInitialBuyAmountOut: (amountIn: bigint) => Promise<bigint>
+  createToken: (params: CreateTokenParams) => Promise<CreateTokenResult>
 }
 
 // ==================== Factory ====================
@@ -59,6 +149,8 @@ export interface TokenHelper {
 export function createTokenHelper(config: TokenHelperConfig): TokenHelper {
   const network = config.network ?? DEFAULT_NETWORK
   const chain = CHAINS[network]
+  const contracts = CONTRACTS[network]
+  const apiBaseUrl = API_BASE_URL[network]
 
   const publicClient = createPublicClient({
     chain,
@@ -273,6 +365,217 @@ export function createTokenHelper(config: TokenHelperConfig): TokenHelper {
         }
       })
       return metadata
+    },
+
+    // ==================== Token Creation API ====================
+
+    async uploadImage(image, contentType) {
+      const response = await fetch(`${apiBaseUrl}/metadata/image`, {
+        method: 'POST',
+        headers: { 'Content-Type': contentType },
+        body: image,
+      })
+
+      if (!response.ok) {
+        const error = (await response.json().catch(() => ({ error: 'Unknown error' }))) as { error?: string }
+        throw new Error(`Image upload failed: ${error.error || response.statusText}`)
+      }
+
+      const data = (await response.json()) as { image_uri: string; is_nsfw: boolean }
+      return {
+        imageUri: data.image_uri,
+        isNsfw: data.is_nsfw,
+      }
+    },
+
+    async uploadMetadata(params) {
+      const response = await fetch(`${apiBaseUrl}/metadata/metadata`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          image_uri: params.imageUri,
+          name: params.name,
+          symbol: params.symbol,
+          description: params.description,
+          website: params.website ?? null,
+          twitter: params.twitter ?? null,
+          telegram: params.telegram ?? null,
+        }),
+      })
+
+      if (!response.ok) {
+        const error = (await response.json().catch(() => ({ error: 'Unknown error' }))) as { error?: string }
+        throw new Error(`Metadata upload failed: ${error.error || response.statusText}`)
+      }
+
+      const data = (await response.json()) as {
+        metadata_uri: string
+        metadata: {
+          name: string
+          symbol: string
+          description: string
+          image_uri: string
+          website?: string
+          twitter?: string
+          telegram?: string
+          is_nsfw: boolean
+        }
+      }
+      return {
+        metadataUri: data.metadata_uri,
+        metadata: {
+          name: data.metadata.name,
+          symbol: data.metadata.symbol,
+          description: data.metadata.description,
+          imageUri: data.metadata.image_uri,
+          website: data.metadata.website,
+          twitter: data.metadata.twitter,
+          telegram: data.metadata.telegram,
+          isNsfw: data.metadata.is_nsfw,
+        },
+      }
+    },
+
+    async mineSalt(params) {
+      const response = await fetch(`${apiBaseUrl}/token/salt`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          creator: params.creator,
+          name: params.name,
+          symbol: params.symbol,
+          metadata_uri: params.metadataUri,
+        }),
+      })
+
+      if (!response.ok) {
+        const error = (await response.json().catch(() => ({ error: 'Unknown error' }))) as { error?: string }
+        throw new Error(`Salt mining failed: ${error.error || response.statusText}`)
+      }
+
+      const data = (await response.json()) as { salt: string; address: string }
+      return {
+        salt: data.salt as `0x${string}`,
+        address: data.address as Address,
+      }
+    },
+
+    // ==================== Token Creation Contract ====================
+
+    async getFeeConfig() {
+      const result = await publicClient.readContract({
+        address: contracts.CURVE,
+        abi: curveAbi,
+        functionName: 'feeConfig',
+      })
+      return {
+        deployFeeAmount: result[0],
+        graduateFeeAmount: result[1],
+        protocolFee: result[2],
+      }
+    },
+
+    async getInitialBuyAmountOut(amountIn) {
+      return publicClient.readContract({
+        address: contracts.LENS,
+        abi: lensAbi,
+        functionName: 'getInitialBuyAmountOut',
+        args: [amountIn],
+      })
+    },
+
+    async createToken(params) {
+      // Step 1: Upload image
+      const imageResult = await this.uploadImage(params.image, params.imageContentType)
+
+      // Step 2: Upload metadata
+      const metadataResult = await this.uploadMetadata({
+        imageUri: imageResult.imageUri,
+        name: params.name,
+        symbol: params.symbol,
+        description: params.description,
+        website: params.website,
+        twitter: params.twitter,
+        telegram: params.telegram,
+      })
+
+      // Step 3: Mine salt for vanity address
+      const saltResult = await this.mineSalt({
+        creator: account.address,
+        name: params.name,
+        symbol: params.symbol,
+        metadataUri: metadataResult.metadataUri,
+      })
+
+      // Step 4: Get deploy fee
+      const feeConfig = await this.getFeeConfig()
+
+      // Step 5: Calculate total value and expected tokens
+      const initialBuyAmount = params.initialBuyAmount ?? 0n
+      const totalValue = feeConfig.deployFeeAmount + initialBuyAmount
+
+      // Step 6: Calculate minimum tokens for initial buy
+      let minTokens = 0n
+      if (initialBuyAmount > 0n) {
+        minTokens = await this.getInitialBuyAmountOut(initialBuyAmount)
+      }
+
+      // Step 7: Create token on-chain via BONDING_CURVE_ROUTER
+      const hash = await walletClient.writeContract({
+        address: contracts.BONDING_CURVE_ROUTER,
+        abi: bondingCurveRouterAbi,
+        functionName: 'create',
+        args: [
+          {
+            name: params.name,
+            symbol: params.symbol,
+            tokenURI: metadataResult.metadataUri,
+            amountOut: minTokens,
+            salt: saltResult.salt,
+            actionId: 1,
+          },
+        ],
+        account,
+        chain,
+        value: totalValue,
+        gas: params.gasLimit,
+        gasPrice: params.gasPrice,
+        nonce: params.nonce,
+      })
+
+      // Step 8: Wait for transaction receipt
+      const receipt = await publicClient.waitForTransactionReceipt({ hash })
+
+      // Step 9: Parse CurveCreate event to get token and pool addresses
+      let tokenAddress: Address = saltResult.address
+      let poolAddress: Address = '0x0000000000000000000000000000000000000000'
+
+      for (const log of receipt.logs) {
+        try {
+          const event = decodeEventLog({
+            abi: curveAbi,
+            data: log.data,
+            topics: log.topics,
+          })
+          if (event.eventName === 'CurveCreate') {
+            tokenAddress = event.args.token as Address
+            poolAddress = event.args.pool as Address
+            break
+          }
+        } catch {
+          // Not a CurveCreate event, continue
+        }
+      }
+
+      return {
+        tokenAddress,
+        poolAddress,
+        transactionHash: receipt.transactionHash,
+        imageUri: imageResult.imageUri,
+        metadataUri: metadataResult.metadataUri,
+        salt: saltResult.salt,
+        isNsfw: imageResult.isNsfw,
+      }
     },
   }
 }

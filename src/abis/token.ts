@@ -367,5 +367,3 @@ export const tokenAbi = [
     inputs: [],
   },
 ] as const
-
-export default tokenAbi

@@ -184,11 +184,6 @@ export const bondingCurveRouterAbi = [
         internalType: 'struct IBondingCurveRouter.TokenCreationParams',
         components: [
           {
-            name: 'creator',
-            type: 'address',
-            internalType: 'address',
-          },
-          {
             name: 'name',
             type: 'string',
             internalType: 'string',
@@ -207,6 +202,16 @@ export const bondingCurveRouterAbi = [
             name: 'amountOut',
             type: 'uint256',
             internalType: 'uint256',
+          },
+          {
+            name: 'salt',
+            type: 'bytes32',
+            internalType: 'bytes32',
+          },
+          {
+            name: 'actionId',
+            type: 'uint8',
+            internalType: 'uint8',
           },
         ],
       },
@@ -240,147 +245,7 @@ export const bondingCurveRouterAbi = [
   },
   {
     type: 'function',
-    name: 'exactOutBuy',
-    inputs: [
-      {
-        name: 'params',
-        type: 'tuple',
-        internalType: 'struct IBondingCurveRouter.ExactOutBuyParams',
-        components: [
-          {
-            name: 'amountInMax',
-            type: 'uint256',
-            internalType: 'uint256',
-          },
-          {
-            name: 'amountOut',
-            type: 'uint256',
-            internalType: 'uint256',
-          },
-          {
-            name: 'token',
-            type: 'address',
-            internalType: 'address',
-          },
-          {
-            name: 'to',
-            type: 'address',
-            internalType: 'address',
-          },
-          {
-            name: 'deadline',
-            type: 'uint256',
-            internalType: 'uint256',
-          },
-        ],
-      },
-    ],
-    outputs: [],
-    stateMutability: 'payable',
-  },
-  {
-    type: 'function',
-    name: 'exactOutSell',
-    inputs: [
-      {
-        name: 'params',
-        type: 'tuple',
-        internalType: 'struct IBondingCurveRouter.ExactOutSellParams',
-        components: [
-          {
-            name: 'amountInMax',
-            type: 'uint256',
-            internalType: 'uint256',
-          },
-          {
-            name: 'amountOut',
-            type: 'uint256',
-            internalType: 'uint256',
-          },
-          {
-            name: 'token',
-            type: 'address',
-            internalType: 'address',
-          },
-          {
-            name: 'to',
-            type: 'address',
-            internalType: 'address',
-          },
-          {
-            name: 'deadline',
-            type: 'uint256',
-            internalType: 'uint256',
-          },
-        ],
-      },
-    ],
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    name: 'exactOutSellPermit',
-    inputs: [
-      {
-        name: 'params',
-        type: 'tuple',
-        internalType: 'struct IBondingCurveRouter.ExactOutSellPermitParams',
-        components: [
-          {
-            name: 'amountInMax',
-            type: 'uint256',
-            internalType: 'uint256',
-          },
-          {
-            name: 'amountOut',
-            type: 'uint256',
-            internalType: 'uint256',
-          },
-          {
-            name: 'amountAllowance',
-            type: 'uint256',
-            internalType: 'uint256',
-          },
-          {
-            name: 'token',
-            type: 'address',
-            internalType: 'address',
-          },
-          {
-            name: 'to',
-            type: 'address',
-            internalType: 'address',
-          },
-          {
-            name: 'deadline',
-            type: 'uint256',
-            internalType: 'uint256',
-          },
-          {
-            name: 'v',
-            type: 'uint8',
-            internalType: 'uint8',
-          },
-          {
-            name: 'r',
-            type: 'bytes32',
-            internalType: 'bytes32',
-          },
-          {
-            name: 's',
-            type: 'bytes32',
-            internalType: 'bytes32',
-          },
-        ],
-      },
-    ],
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    name: 'getAmountIn',
+    name: 'getAmountInWithFee',
     inputs: [
       {
         name: 'token',
@@ -393,7 +258,7 @@ export const bondingCurveRouterAbi = [
         internalType: 'uint256',
       },
       {
-        name: 'is_buy',
+        name: 'isBuy',
         type: 'bool',
         internalType: 'bool',
       },
@@ -409,7 +274,7 @@ export const bondingCurveRouterAbi = [
   },
   {
     type: 'function',
-    name: 'getAmountOut',
+    name: 'getAmountOutWithFee',
     inputs: [
       {
         name: 'token',
@@ -422,7 +287,7 @@ export const bondingCurveRouterAbi = [
         internalType: 'uint256',
       },
       {
-        name: 'is_buy',
+        name: 'isBuy',
         type: 'bool',
         internalType: 'bool',
       },
@@ -818,7 +683,7 @@ export const dexRouterAbi = [
         internalType: 'uint256',
       },
       {
-        name: 'is_buy',
+        name: 'isBuy',
         type: 'bool',
         internalType: 'bool',
       },
@@ -847,7 +712,7 @@ export const dexRouterAbi = [
         internalType: 'uint256',
       },
       {
-        name: 'is_buy',
+        name: 'isBuy',
         type: 'bool',
         internalType: 'bool',
       },

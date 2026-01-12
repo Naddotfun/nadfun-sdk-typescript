@@ -14,6 +14,13 @@ export interface NetworkContracts {
   V3_FACTORY: Address
 }
 
+// ==================== API ====================
+
+export const API_BASE_URL: Record<Network, string> = {
+  testnet: 'https://dev-api.nad.fun',
+  mainnet: 'https://api.nad.fun',
+}
+
 // ==================== Contracts ====================
 
 export const CONTRACTS: Record<Network, NetworkContracts> = {
