@@ -1,6 +1,6 @@
 {
   "name": "@nadfun/sdk",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "description": "TypeScript SDK for Nad.fun contracts",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
@@ -26,7 +26,8 @@
     "example:curve-stream": "tsx -r dotenv/config examples/curve-stream.ts",
     "example:curve-indexer": "tsx -r dotenv/config examples/curve-indexer.ts",
     "example:dex-stream": "tsx -r dotenv/config examples/dex-stream.ts",
-    "example:dex-indexer": "tsx -r dotenv/config examples/dex-indexer.ts"
+    "example:dex-indexer": "tsx -r dotenv/config examples/dex-indexer.ts",
+    "example:create-token": "tsx -r dotenv/config examples/create-token.ts"
   },
   "keywords": [
     "blockchain",

@@ -157,6 +157,75 @@ const isContract = await sdk.isContract(address)
 const permit = await sdk.generatePermitSignature(token, spender, amount, deadline)
 ```
 
+### Token Creation
+
+```typescript
+import { createTokenHelper, parseEther, formatEther } from '@nadfun/sdk'
+import * as fs from 'fs'
+
+const tokenHelper = createTokenHelper({
+  rpcUrl: process.env.RPC_URL!,
+  privateKey: process.env.PRIVATE_KEY! as `0x${string}`,
+  network: 'testnet',
+})
+
+// Get deploy fee
+const feeConfig = await tokenHelper.getFeeConfig()
+console.log('Deploy fee:', formatEther(feeConfig.deployFeeAmount), 'MON')
+
+// Calculate expected tokens for initial buy
+const initialBuyAmount = parseEther('0.1')
+const expectedTokens = await tokenHelper.getInitialBuyAmountOut(initialBuyAmount)
+console.log('Expected tokens:', formatEther(expectedTokens))
+
+// Create token with initial buy
+const imageBuffer = fs.readFileSync('./my-token.png')
+const result = await tokenHelper.createToken({
+  name: 'My Token',
+  symbol: 'MTK',
+  description: 'A token created with NadFun SDK',
+  image: imageBuffer,
+  imageContentType: 'image/png',
+  website: 'https://mytoken.com',
+  twitter: 'https://x.com/mytoken',
+  telegram: 'https://t.me/mytoken',
+  initialBuyAmount,
+})
+
+console.log('Token Address:', result.tokenAddress)
+console.log('Pool Address:', result.poolAddress)
+console.log('TX Hash:', result.transactionHash)
+```
+
+Individual API calls for advanced usage:
+
+```typescript
+// Step 1: Upload image
+const imageResult = await tokenHelper.uploadImage(imageBuffer, 'image/png')
+console.log('Image URI:', imageResult.imageUri)
+console.log('Is NSFW:', imageResult.isNsfw)
+
+// Step 2: Upload metadata
+const metadataResult = await tokenHelper.uploadMetadata({
+  imageUri: imageResult.imageUri,
+  name: 'My Token',
+  symbol: 'MTK',
+  description: 'A token created with NadFun SDK',
+  website: 'https://mytoken.com',
+})
+console.log('Metadata URI:', metadataResult.metadataUri)
+
+// Step 3: Mine salt for vanity address
+const saltResult = await tokenHelper.mineSalt({
+  creator: tokenHelper.account.address,
+  name: 'My Token',
+  symbol: 'MTK',
+  metadataUri: metadataResult.metadataUri,
+})
+console.log('Salt:', saltResult.salt)
+console.log('Predicted Address:', saltResult.address)
+```
+
 ### Curve State
 
 ```typescript
@@ -335,6 +404,7 @@ npx tsx -r dotenv/config examples/curve-stream.ts
 npx tsx -r dotenv/config examples/curve-indexer.ts
 npx tsx -r dotenv/config examples/dex-stream.ts
 npx tsx -r dotenv/config examples/dex-indexer.ts
+npx tsx -r dotenv/config examples/create-token.ts
 ```
 
 ## API Reference
