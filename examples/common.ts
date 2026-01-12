@@ -5,7 +5,7 @@
 export type Network = 'testnet' | 'mainnet'
 
 export const network: Network =
-  (process.argv[2] as Network) ||
+  (process.argv[2] && !process.argv[2].startsWith('--') ? (process.argv[2] as Network) : null) ||
   (process.env.NETWORK as Network) ||
   'testnet'
 
