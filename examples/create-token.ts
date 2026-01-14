@@ -10,7 +10,7 @@
 
 import * as fs from 'fs'
 import * as path from 'path'
-import { createTokenHelper, parseEther, formatEther } from '../src'
+import { initSDK, parseEther, formatEther } from '../src'
 import { network, rpcUrl, privateKey } from './common'
 
 // ===== Configuration (Edit these values) =====
@@ -30,10 +30,10 @@ async function main() {
   const { website: tokenWebsite, twitter: tokenTwitter, telegram: tokenTelegram } = CONFIG
   const { initialBuyMon } = CONFIG
 
-  const tokenHelper = createTokenHelper({ rpcUrl, privateKey, network })
+  const nadSDK = initSDK({ rpcUrl, privateKey, network })
 
   console.log('Network:', network)
-  console.log('Creator:', tokenHelper.account.address)
+  console.log('Creator:', nadSDK.account.address)
 
   // Load image file
   if (!fs.existsSync(imagePath)) {
@@ -60,20 +60,20 @@ async function main() {
   }
 
   // Get deploy fee
-  const feeConfig = await tokenHelper.getFeeConfig()
+  const feeConfig = await nadSDK.getFeeConfig()
   console.log('Deploy fee:', formatEther(feeConfig.deployFeeAmount), 'MON')
 
   // Initial buy amount
   const initialBuyAmount = parseEther(initialBuyMon)
   if (initialBuyAmount > 0n) {
-    const expectedTokens = await tokenHelper.getInitialBuyAmountOut(initialBuyAmount)
+    const expectedTokens = await nadSDK.getInitialBuyAmountOut(initialBuyAmount)
     console.log('Initial buy:', formatEther(initialBuyAmount), 'MON')
     console.log('Expected tokens:', formatEther(expectedTokens))
   }
 
   // Create token
   console.log('\nCreating token...')
-  const result = await tokenHelper.createToken({
+  const result = await nadSDK.createToken({
     name: tokenName,
     symbol: tokenSymbol,
     description: tokenDesc,

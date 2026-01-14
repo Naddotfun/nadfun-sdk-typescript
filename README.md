@@ -13,21 +13,21 @@ npm install @nadfun/sdk
 ```typescript
 import { initSDK, parseEther } from '@nadfun/sdk'
 
-const sdk = initSDK({
+const nadSDK = initSDK({
   rpcUrl: process.env.RPC_URL!,
   privateKey: process.env.PRIVATE_KEY! as `0x${string}`,
   network: 'testnet', // or 'mainnet'
 })
 
 // Buy tokens
-await sdk.simpleBuy({
+await nadSDK.simpleBuy({
   token: '0x...',
   amountIn: parseEther('0.1'),
   slippagePercent: 1,
 })
 
 // Sell tokens (automatic approve)
-await sdk.simpleSell({
+await nadSDK.simpleSell({
   token: '0x...',
   amountIn: parseEther('1000'),
   slippagePercent: 1,
@@ -68,52 +68,52 @@ src/
 
 ```typescript
 // Simple buy
-await sdk.simpleBuy({
+await nadSDK.simpleBuy({
   token: '0x...',
   amountIn: parseEther('0.1'),
   slippagePercent: 1,
 })
 
 // Simple sell (automatic approve)
-await sdk.simpleSell({
+await nadSDK.simpleSell({
   token: '0x...',
   amountIn: parseEther('1000'),
   slippagePercent: 1,
 })
 
 // Get quote
-const quote = await sdk.getAmountOut(token, amountIn, true) // true = buy
+const quote = await nadSDK.getAmountOut(token, amountIn, true) // true = buy
 console.log('Router:', quote.router)
 console.log('Expected amount:', quote.amount)
 
 // Low-level buy (manual control)
-await sdk.buy({
+await nadSDK.buy({
   token,
   amountIn,
   amountOutMin,
-  to: sdk.account.address,
+  to: nadSDK.account.address,
   deadline: BigInt(Math.floor(Date.now() / 1000) + 300),
 }, router)
 
 // Sell with permit (gasless approve)
-const permit = await sdk.generatePermitSignature(token, router, amountIn, deadline)
-await sdk.sellPermit({
+const permit = await nadSDK.generatePermitSignature(token, router, amountIn, deadline)
+await nadSDK.sellPermit({
   token,
   amountIn,
   amountOutMin,
-  to: sdk.account.address,
+  to: nadSDK.account.address,
   deadline,
   amountAllowance: amountIn,
   ...permit,
 }, router)
 
 // Gas estimation
-const gas = await sdk.estimateGas(router, {
+const gas = await nadSDK.estimateGas(router, {
   type: 'buy',
   token,
   amountIn,
   amountOutMin,
-  to: sdk.account.address,
+  to: nadSDK.account.address,
 })
 ```
 
@@ -121,66 +121,66 @@ const gas = await sdk.estimateGas(router, {
 
 ```typescript
 // Balance
-const balance = await sdk.getBalance(token)
-const [raw, formatted] = await sdk.getBalanceFormatted(token)
+const balance = await nadSDK.getBalance(token)
+const [raw, formatted] = await nadSDK.getBalanceFormatted(token)
 
 // Batch balances
-const balances = await sdk.batchGetBalances([token1, token2, token3])
+const balances = await nadSDK.batchGetBalances([token1, token2, token3])
 
 // Metadata
-const metadata = await sdk.getMetadata(token)
+const metadata = await nadSDK.getMetadata(token)
 console.log(`${metadata.name} (${metadata.symbol})`)
 
 // Batch metadata
-const allMetadata = await sdk.batchGetMetadata([token1, token2])
+const allMetadata = await nadSDK.batchGetMetadata([token1, token2])
 
 // Individual metadata methods
-const decimals = await sdk.getDecimals(token)
-const name = await sdk.getName(token)
-const symbol = await sdk.getSymbol(token)
-const totalSupply = await sdk.getTotalSupply(token)
-const nonce = await sdk.getNonce(token)
+const decimals = await nadSDK.getDecimals(token)
+const name = await nadSDK.getName(token)
+const symbol = await nadSDK.getSymbol(token)
+const totalSupply = await nadSDK.getTotalSupply(token)
+const nonce = await nadSDK.getNonce(token)
 
 // Approve
-await sdk.approve(token, spender, amount)
+await nadSDK.approve(token, spender, amount)
 
 // Transfer
-await sdk.transfer(token, to, amount)
+await nadSDK.transfer(token, to, amount)
 
 // Allowance
-const allowance = await sdk.getAllowance(token, spender)
+const allowance = await nadSDK.getAllowance(token, spender)
 
 // Check if address is contract
-const isContract = await sdk.isContract(address)
+const isContract = await nadSDK.isContract(address)
 
 // Permit signature (EIP-2612)
-const permit = await sdk.generatePermitSignature(token, spender, amount, deadline)
+const permit = await nadSDK.generatePermitSignature(token, spender, amount, deadline)
 ```
 
 ### Token Creation
 
 ```typescript
-import { createTokenHelper, parseEther, formatEther } from '@nadfun/sdk'
+import { initSDK, parseEther, formatEther } from '@nadfun/sdk'
 import * as fs from 'fs'
 
-const tokenHelper = createTokenHelper({
+const nadSDK = initSDK({
   rpcUrl: process.env.RPC_URL!,
   privateKey: process.env.PRIVATE_KEY! as `0x${string}`,
   network: 'testnet',
 })
 
 // Get deploy fee
-const feeConfig = await tokenHelper.getFeeConfig()
+const feeConfig = await nadSDK.getFeeConfig()
 console.log('Deploy fee:', formatEther(feeConfig.deployFeeAmount), 'MON')
 
 // Calculate expected tokens for initial buy
 const initialBuyAmount = parseEther('0.1')
-const expectedTokens = await tokenHelper.getInitialBuyAmountOut(initialBuyAmount)
+const expectedTokens = await nadSDK.getInitialBuyAmountOut(initialBuyAmount)
 console.log('Expected tokens:', formatEther(expectedTokens))
 
 // Create token with initial buy
 const imageBuffer = fs.readFileSync('./my-token.png')
-const result = await tokenHelper.createToken({
+const result = await nadSDK.createToken({
   name: 'My Token',
   symbol: 'MTK',
   description: 'A token created with NadFun SDK',
@@ -201,12 +201,12 @@ Individual API calls for advanced usage:
 
 ```typescript
 // Step 1: Upload image
-const imageResult = await tokenHelper.uploadImage(imageBuffer, 'image/png')
+const imageResult = await nadSDK.uploadImage(imageBuffer, 'image/png')
 console.log('Image URI:', imageResult.imageUri)
 console.log('Is NSFW:', imageResult.isNsfw)
 
 // Step 2: Upload metadata
-const metadataResult = await tokenHelper.uploadMetadata({
+const metadataResult = await nadSDK.uploadMetadata({
   imageUri: imageResult.imageUri,
   name: 'My Token',
   symbol: 'MTK',
@@ -216,8 +216,8 @@ const metadataResult = await tokenHelper.uploadMetadata({
 console.log('Metadata URI:', metadataResult.metadataUri)
 
 // Step 3: Mine salt for vanity address
-const saltResult = await tokenHelper.mineSalt({
-  creator: tokenHelper.account.address,
+const saltResult = await nadSDK.mineSalt({
+  creator: nadSDK.account.address,
   name: 'My Token',
   symbol: 'MTK',
   metadataUri: metadataResult.metadataUri,
@@ -230,7 +230,7 @@ console.log('Predicted Address:', saltResult.address)
 
 ```typescript
 // Bonding curve state
-const state = await sdk.getCurveState(token)
+const state = await nadSDK.getCurveState(token)
 console.log('Real MON Reserve:', state.realMonReserve)
 console.log('Real Token Reserve:', state.realTokenReserve)
 console.log('Virtual MON Reserve:', state.virtualMonReserve)
@@ -239,20 +239,20 @@ console.log('K:', state.k)
 console.log('Target Token Amount:', state.targetTokenAmount)
 
 // Available tokens to buy before graduation
-const available = await sdk.getAvailableBuyTokens(token)
+const available = await nadSDK.getAvailableBuyTokens(token)
 console.log('Available:', available.availableBuyToken)
 console.log('Required MON:', available.requiredMonAmount)
 
 // Progress (0-10000 = 0-100%)
-const progress = await sdk.getProgress(token)
+const progress = await nadSDK.getProgress(token)
 console.log(`Progress: ${Number(progress) / 100}%`)
 
 // Graduation status
-const isGraduated = await sdk.isGraduated(token)
-const isLocked = await sdk.isLocked(token)
+const isGraduated = await nadSDK.isGraduated(token)
+const isLocked = await nadSDK.isLocked(token)
 
 // Calculate initial buy amount
-const amountOut = await sdk.getInitialBuyAmountOut(parseEther('1'))
+const amountOut = await nadSDK.getInitialBuyAmountOut(parseEther('1'))
 ```
 
 ### Real-time Streaming
@@ -260,7 +260,7 @@ const amountOut = await sdk.getInitialBuyAmountOut(parseEther('1'))
 > **Note:** `wsUrl` must be provided in `initSDK` config to use streaming features.
 
 ```typescript
-const sdk = initSDK({
+const nadSDK = initSDK({
   rpcUrl: process.env.RPC_URL!,
   privateKey: process.env.PRIVATE_KEY! as `0x${string}`,
   network: 'testnet',
@@ -268,7 +268,7 @@ const sdk = initSDK({
 })
 
 // Curve events - with initial filter options
-const stream = sdk.createCurveStream({
+const stream = nadSDK.createCurveStream({
   tokens: [tokenAddress],
   eventTypes: ['Create', 'Buy', 'Sell'],
 })
@@ -292,7 +292,7 @@ stream.clearFilters()
 stream.stop()
 
 // DEX swaps
-const dexStream = sdk.createDexStream([poolAddress])
+const dexStream = nadSDK.createDexStream([poolAddress])
 dexStream.onSwap((event) => {
   console.log('Swap:', event)
 })
@@ -320,7 +320,7 @@ stream.start()
 
 ```typescript
 // Curve indexer
-const indexer = sdk.createCurveIndexer()
+const indexer = nadSDK.createCurveIndexer()
 
 // Get all events with filters
 const events = await indexer.getEvents({
@@ -342,7 +342,7 @@ const graduates = await indexer.getGraduateEvents(fromBlock, toBlock)
 const latestBlock = await indexer.getLatestBlock()
 
 // DEX indexer
-const dexIndexer = sdk.createDexIndexer([poolAddress])
+const dexIndexer = nadSDK.createDexIndexer([poolAddress])
 
 const swaps = await dexIndexer.getSwapEvents({
   fromBlock: 1000000n,
@@ -359,7 +359,7 @@ const allPoolsInfo = await dexIndexer.getPoolsInfo()
 ## Network Configuration
 
 ```typescript
-const sdk = initSDK({
+const nadSDK = initSDK({
   rpcUrl: process.env.RPC_URL!,
   privateKey: process.env.PRIVATE_KEY! as `0x${string}`,
   network: 'testnet', // 'testnet' | 'mainnet'
