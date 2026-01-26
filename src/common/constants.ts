@@ -18,7 +18,7 @@ export interface NetworkContracts {
 
 export const API_BASE_URL: Record<Network, string> = {
   testnet: 'https://dev-api.nad.fun',
-  mainnet: 'https://api.nad.fun',
+  mainnet: 'https://api.nadapp.net',
 }
 
 // ==================== Contracts ====================
