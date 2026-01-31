@@ -1,0 +1,222 @@
+# Nad.fun TypeScript SDK
+
+> TypeScript SDK for Nad.fun - bonding curve trading, token creation, and real-time event streaming on Monad blockchain.
+
+Nad.fun is a meme coin launchpad on Monad with bonding curve mechanics. Tokens graduate to Capricorn DEX after reaching target liquidity.
+
+## Installation
+
+```bash
+npm install @nadfun/sdk
+```
+
+## Quick Start
+
+```typescript
+import { initSDK, parseEther } from '@nadfun/sdk'
+
+const sdk = initSDK({
+  rpcUrl: 'https://rpc.monad.xyz',
+  privateKey: '0x...',
+  network: 'mainnet', // or 'testnet'
+})
+
+// Buy tokens
+await sdk.simpleBuy({
+  token: '0x...',
+  amountIn: parseEther('0.1'),
+  slippagePercent: 1,
+})
+
+// Sell tokens
+await sdk.simpleSell({
+  token: '0x...',
+  amountIn: parseEther('1000'),
+  slippagePercent: 1,
+})
+```
+
+## Core Concepts
+
+- **Bonding Curve**: Tokens start on a bonding curve with virtual liquidity
+- **Graduation**: When target is reached, tokens migrate to Capricorn DEX
+- **MON**: Native token of Monad, used for all transactions
+- **WMON**: Wrapped MON for DEX operations
+
+## Trading
+
+| Function | Description |
+|----------|-------------|
+| `simpleBuy(params)` | Buy with auto slippage calculation |
+| `simpleSell(params)` | Sell with auto approve + slippage |
+| `getAmountOut(token, amountIn, isBuy)` | Get quote before trade |
+| `getAmountIn(token, amountOut, isBuy)` | Get required input amount |
+
+### Example: Buy with Quote
+
+```typescript
+const quote = await sdk.getAmountOut(token, parseEther('0.1'), true)
+console.log('Router:', quote.router)
+console.log('Expected tokens:', quote.amount)
+
+await sdk.simpleBuy({
+  token,
+  amountIn: parseEther('0.1'),
+  slippagePercent: 1,
+})
+```
+
+## Token Creation
+
+```typescript
+import * as fs from 'fs'
+
+const result = await sdk.createToken({
+  name: 'My Token',
+  symbol: 'MTK',
+  description: 'Description here',
+  image: fs.readFileSync('./image.png'),
+  imageContentType: 'image/png',
+  website: 'https://...',
+  twitter: 'https://x.com/...',
+  telegram: 'https://t.me/...',
+  initialBuyAmount: parseEther('0.1'),
+})
+
+console.log('Token:', result.tokenAddress)
+console.log('Pool:', result.poolAddress)
+```
+
+## Token Operations
+
+| Function | Description |
+|----------|-------------|
+| `getBalance(token)` | Get token balance |
+| `getMetadata(token)` | Get name, symbol, decimals |
+| `approve(token, spender, amount)` | Approve spending |
+| `transfer(token, to, amount)` | Transfer tokens |
+| `batchGetBalances(tokens)` | Get multiple balances |
+| `batchGetMetadata(tokens)` | Get multiple token metadata |
+
+## Curve State
+
+| Function | Description |
+|----------|-------------|
+| `getCurveState(token)` | Get bonding curve reserves |
+| `getProgress(token)` | Graduation progress (0-10000 = 0-100%) |
+| `isGraduated(token)` | Check if token graduated to DEX |
+| `isLocked(token)` | Check if token is locked |
+| `getAvailableBuyTokens(token)` | Tokens available before graduation |
+
+## Real-time Streaming
+
+Requires `wsUrl` in config:
+
+```typescript
+const sdk = initSDK({
+  rpcUrl: '...',
+  privateKey: '...',
+  network: 'mainnet',
+  wsUrl: 'wss://...',
+})
+
+// Bonding curve events
+const stream = sdk.createCurveStream({
+  tokens: ['0x...'],
+  eventTypes: ['Create', 'Buy', 'Sell'],
+})
+
+stream.onEvent((event) => {
+  console.log(`[${event.type}]`, event)
+})
+
+stream.start()
+
+// DEX swaps (post-graduation)
+const dexStream = sdk.createDexStream([poolAddress])
+dexStream.onSwap((event) => console.log('Swap:', event))
+dexStream.start()
+```
+
+## Historical Indexing
+
+```typescript
+const indexer = sdk.createCurveIndexer()
+
+const events = await indexer.getEvents({
+  fromBlock: 1000000n,
+  toBlock: 1001000n,
+  eventTypes: ['Buy', 'Sell'],
+  tokens: [tokenAddress],
+})
+
+// Specific event types
+const creates = await indexer.getCreateEvents(fromBlock, toBlock)
+const buys = await indexer.getBuyEvents(fromBlock, toBlock, tokenAddress)
+const graduates = await indexer.getGraduateEvents(fromBlock, toBlock)
+```
+
+## Event Types
+
+| Event | Description |
+|-------|-------------|
+| `Create` | New token created on curve |
+| `Buy` | Token purchased on curve |
+| `Sell` | Token sold on curve |
+| `Sync` | Curve state updated |
+| `TokenLocked` | Token locked |
+| `Graduate` | Token graduated to DEX |
+
+## Types
+
+```typescript
+interface SimpleBuyParams {
+  token: Address
+  amountIn: bigint
+  slippagePercent?: number
+  to?: Address
+  deadline?: bigint
+}
+
+interface CurveState {
+  realMonReserve: bigint
+  realTokenReserve: bigint
+  virtualMonReserve: bigint
+  virtualTokenReserve: bigint
+  k: bigint
+  targetTokenAmount: bigint
+}
+
+type CurveEventType = 'Create' | 'Buy' | 'Sell' | 'Sync' | 'TokenLocked' | 'Graduate'
+```
+
+## Contract Addresses
+
+### Mainnet (Chain ID: 143)
+
+| Contract | Address |
+|----------|---------|
+| Curve | `0xA7283d07812a02AFB7C09B60f8896bCEA3F90aCE` |
+| Bonding Curve Router | `0x6F6B8F1a20703309951a5127c45B49b1CD981A22` |
+| DEX Router | `0x0B79d71AE99528D1dB24A4148b5f4F865cc2b137` |
+| Lens | `0x7e78A8DE94f21804F7a17F4E8BF9EC2c872187ea` |
+| WMON | `0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A` |
+| V3 Factory | `0x6B5F564339DbAD6b780249827f2198a841FEB7F3` |
+
+### Testnet
+
+| Contract | Address |
+|----------|---------|
+| Curve | `0x1228b0dc9481C11D3071E7A924B794CfB038994e` |
+| Bonding Curve Router | `0x865054F0F6A288adaAc30261731361EA7E908003` |
+| DEX Router | `0x5D4a4f430cA3B1b2dB86B9cFE48a5316800F5fb2` |
+| Lens | `0xB056d79CA5257589692699a46623F901a3BB76f1` |
+| WMON | `0x5a4E0bFDeF88C9032CB4d24338C5EB3d3870BfDd` |
+| V3 Factory | `0xd0a37cf728CE2902eB8d4F6f2afc776854048253b` |
+
+## Links
+
+- GitHub: https://github.com/Naddotfun/nadfun-sdk-typescript
+- Rust SDK: https://github.com/Naddotfun/nadfun-sdk-rust
+- Documentation: https://nad-fun.gitbook.io/nad.fun
+- Website: https://nad.fun
